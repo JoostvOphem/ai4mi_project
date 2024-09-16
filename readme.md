@@ -1,5 +1,7 @@
 TEXT
 
+Old macdonald had a farm
+
 # AI for medical imaging — Fall 2024 course project
 
 ## Project overview
