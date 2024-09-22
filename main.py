@@ -40,6 +40,7 @@ from torch.utils.data import DataLoader
 from dataset import SliceDataset
 from ShallowNet import shallowCNN
 from ENet import ENet
+from Models import SAM, UNet
 from utils import (Dcm,
                    class2one_hot,
                    probs2one_hot,
@@ -55,7 +56,7 @@ datasets_params: dict[str, dict[str, Any]] = {}
 # K for the number of classes
 # Avoids the clases with C (often used for the number of Channel)
 datasets_params["TOY2"] = {'K': 2, 'net': shallowCNN, 'B': 2}
-datasets_params["SEGTHOR"] = {'K': 5, 'net': ENet, 'B': 8}
+datasets_params["SEGTHOR"] = {'K': 5, 'net': UNet, 'B': 8}  # Change net to SAM, UNet etc.
 
 
 def setup(args) -> tuple[nn.Module, Any, Any, DataLoader, DataLoader, int]:
@@ -65,8 +66,18 @@ def setup(args) -> tuple[nn.Module, Any, Any, DataLoader, DataLoader, int]:
     print(f">> Picked {device} to run experiments")
 
     K: int = datasets_params[args.dataset]['K']
-    net = datasets_params[args.dataset]['net'](1, K)
-    net.init_weights()
+    net = datasets_params[args.dataset]['net']
+
+    if net == SAM:
+        # You need to download this checkpoint model. Run the following lines in your bash
+        # mkdir sam_checkpoints
+        # wget -P ~/sam_checkpoints https://huggingface.co/spaces/abhishek/StableSAM/resolve/main/sam_vit_h_4b8939.pth
+        sam_checkpoint = "sam_checkpoints/sam_vit_h_4b8939.pth" 
+        net = net(num_classes=K, checkpoint_path=sam_checkpoint)
+    else:
+        net = net(1, K)
+        net.init_weights()
+
     net.to(device)
 
     lr = 0.0005
