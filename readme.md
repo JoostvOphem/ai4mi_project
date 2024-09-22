@@ -1,8 +1,24 @@
-TEXT
-
-Old macdonald had a farm
-
 # AI for medical imaging — Fall 2024 course project
+
+Alessandro, Erik, Joost & Taiki
+
+## Running on Snellius
+After creating the environment you need to run the following lines to run the main.py
+
+```
+$ source ai4mi/bin/activate
+$ module load 2022
+$ module load Python/3.10.4-GCCcore-11.3.0
+
+# Ask for the GPU node can be done by running the line below or make a job file and run with sbatch command.
+$ srun --partition=gpu --gpus=1 --ntasks=1 --cpus-per-task=18 --time=00:59:00 --pty bash -i
+
+# You can run the following command to train and get result of a model.
+$ python -O main.py --dataset SEGTHOR --mode full --epoch 25 --dest results/segthor/ce --gpu
+```
+
+
+
 
 ## Project overview
 The project is based around the SegTHOR challenge data, which was kindly allowed by Caroline Petitjean (challenge organizer) to use for the course. The challenge was originally on the segmentation of different organs: heart, aorta, esophagus and trachea.
