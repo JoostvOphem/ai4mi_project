@@ -1,6 +1,6 @@
 # AI for medical imaging — Fall 2024 course project
 
-Alessandro, Erik, Joost & Taiki
+Alessandro, Erik, Joost, Rory & Taiki
 
 ## Running on Snellius
 After creating the environment you need to run the following lines to run the main.py
