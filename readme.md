@@ -8,6 +8,7 @@ After creating the environment you need to run the following lines to run the ma
 ```
 $ source ai4mi/bin/activate
 $ module load 2023
+$ module load Python/3.10.4-GCCcore-11.3.0
 
 # Ask for the GPU node can be done by running the line below or make a job file and run with sbatch command.
 $ srun --partition=gpu --gpus=1 --ntasks=1 --cpus-per-task=18 --time=00:59:00 --pty bash -i
