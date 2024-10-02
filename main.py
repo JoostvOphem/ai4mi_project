@@ -41,6 +41,7 @@ from dataset import SliceDataset
 from ShallowNet import shallowCNN
 from ENet import ENet
 from Models import SAM, UNet
+from UNETR import UNETR
 from utils import (Dcm,
                    class2one_hot,
                    probs2one_hot,
@@ -56,7 +57,8 @@ datasets_params: dict[str, dict[str, Any]] = {}
 # K for the number of classes
 # Avoids the clases with C (often used for the number of Channel)
 datasets_params["TOY2"] = {'K': 2, 'net': shallowCNN, 'B': 2}
-datasets_params["SEGTHOR"] = {'K': 5, 'net': UNet, 'B': 8}  # Change net to SAM, UNet etc.
+datasets_params["SEGTHOR"] = {'K': 5, 'net': UNet, 'B': 8}  # Change net to ENet or UNet
+datasets_params["SEGTHOR_3D"] = {'K': 5, 'net': UNETR, 'B': 1, 'img_shape': (128, 128, 128), 'input_dim': 1}
 
 
 def setup(args) -> tuple[nn.Module, Any, Any, DataLoader, DataLoader, int]:
@@ -68,14 +70,14 @@ def setup(args) -> tuple[nn.Module, Any, Any, DataLoader, DataLoader, int]:
     K: int = datasets_params[args.dataset]['K']
     net = datasets_params[args.dataset]['net']
 
-    if net == SAM:
-        # You need to download this checkpoint model. Run the following lines in your bash
-        # mkdir sam_checkpoints
-        # wget -P ~/sam_checkpoints https://huggingface.co/spaces/abhishek/StableSAM/resolve/main/sam_vit_h_4b8939.pth
-        sam_checkpoint = "sam_checkpoints/sam_vit_h_4b8939.pth" 
-        net = net(num_classes=K, checkpoint_path=sam_checkpoint)
+    if args.dataset == "SEGTHOR_3D":
+        img_shape = datasets_params[args.dataset]['img_shape']
+        input_dim = datasets_params[args.dataset]['input_dim']
+        net = net(img_shape=img_shape, input_dim=input_dim, output_dim=K)
     else:
         net = net(1, K)
+    
+    if hasattr(net, 'init_weights'):
         net.init_weights()
 
     net.to(device)
@@ -128,16 +130,38 @@ def setup(args) -> tuple[nn.Module, Any, Any, DataLoader, DataLoader, int]:
 
     args.dest.mkdir(parents=True, exist_ok=True)
 
-    return (net, optimizer, device, train_loader, val_loader, K)
+    return (net, optimizer, device, train_loader, val_loader, K) #, next(iter(train_loader))
 
 
 def runTraining(args):
     print(f">>> Setting up to train on {args.dataset} with {args.mode}")
-    net, optimizer, device, train_loader, val_loader, K = setup(args)
+    (net, optimizer, device, train_loader, val_loader, K)= setup(args)
+    
+    # # Print information about the first batch
+    # print(f"Batch size: {len(first_batch['images'])}")
+    # print(f"Image tensor shape: {first_batch['images'].shape}")
+    # print(f"Ground truth tensor shape: {first_batch['gts'].shape}")
+    
+    # # Print the first patient's 3D tensor
+    # first_patient_image = first_batch['images'][0]
+    # print(f"First patient image shape: {first_patient_image.shape}")
+    # print("First patient image tensor:")
+    # print(first_patient_image)
+    
+    # # If you want to see a slice of the 3D tensor (assuming it's 3D)
+    # if len(first_patient_image.shape) == 3:
+    #     middle_slice = first_patient_image.shape[0] // 2
+    #     print(f"Middle slice (slice {middle_slice}) of first patient:")
+    #     print(first_patient_image[middle_slice])
+    
+    # # Print some statistics about the tensor
+    # print(f"Tensor min value: {first_patient_image.min()}")
+    # print(f"Tensor max value: {first_patient_image.max()}")
+    # print(f"Tensor mean value: {first_patient_image.mean()}")
 
     if args.mode == "full":
         loss_fn = CrossEntropy(idk=list(range(K)))  # Supervise both background and foreground
-    elif args.mode in ["partial"] and args.dataset in ['SEGTHOR', 'SEGTHOR_STUDENTS']:
+    elif args.mode in ["partial"] and args.dataset in ['SEGTHOR', 'SEGTHOR_3D', 'SEGTHOR_STUDENTS']:
         loss_fn = CrossEntropy(idk=[0, 1, 3, 4])  # Do not supervise the heart (class 2)
     else:
         raise ValueError(args.mode, args.dataset)
@@ -242,7 +266,7 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--epochs', default=200, type=int)
-    parser.add_argument('--dataset', default='TOY2', choices=datasets_params.keys())
+    parser.add_argument('--dataset', default='TOY2', choices=list(datasets_params.keys()))
     parser.add_argument('--mode', default='full', choices=['partial', 'full'])
     parser.add_argument('--dest', type=Path, required=True,
                         help="Destination directory to save the results (predictions and weights).")
