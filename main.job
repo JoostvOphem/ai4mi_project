@@ -1,0 +1,21 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu
+#SBATCH --gpus-per-node=1
+#SBATCH --job-name=test
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=18
+#SBATCH --time=00:59:00
+#SBATCH --output=main_run_%A.out
+
+# activate the environment
+source ai4mi/bin/activate
+module load 2022
+module load Python/3.10.4-GCCcore-11.3.0
+
+# python -O main.py --dataset TOY2 --mode full --epoch 25 --dest results/toy2/ce --gpu
+python -O main.py --dataset SEGTHOR --mode full --epoch 25 --dest results/segthor_unet/ce --gpu
+
+
+# Plot
+python plot.py --metric_file results/segthor_unet/ce/dice_val.npy --dest results/segthor_unet/ce/dice_val.png
