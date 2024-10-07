@@ -67,7 +67,7 @@ def save_array_ass_nii(array, filename, fake_GT):
 # ----------------------------------------
 
 # iterate over patients
-for patient_number in range(1, 40):
+for patient_number in range(1, 41):
     if patient_number < 10:
         patient_number = "0" + str(patient_number)
     fake_nii = nib.load(Path("..") / "data" / "segthor_train" / "train" / f"Patient_{patient_number}" / "GT.nii.gz")
