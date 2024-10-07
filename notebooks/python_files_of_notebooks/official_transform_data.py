@@ -59,11 +59,28 @@ transformation_matrix = INV[:3, :3]
 
 translation_vector = INV[:3, 3]
 
+def save_array_ass_nii(array, filename, fake_GT):
+    """
+    Converts a 3D NumPy array into a NIfTI (.nii) file.
+    
+    Args:
+        array (np.ndarray): 3D NumPy array to be converted.
+        filename (str): Path to save the NIfTI file (with .nii extension).
+    
+    Returns:
+        None
+    """
+    # Convert NumPy array to a NIfTI image
+    nii_image = nib.Nifti1Image(array, affine=fake_GT.affine, header=fake_GT.header)
+    
+    # Save the NIfTI image to a file
+    nib.save(nii_image, filename)
+
 # iterate over patients
 for patient_number in range(1, 41):
-    patient_ID = "{:02d}".format(patient_ID)
-    print(f"working on patient {patient_ID}")
-    fake_nii = nib.load(Path("..") / "data" / "segthor_train" / "train" / f"Patient_{patient_number}" / "GT.nii.gz")
+    patient_number = "{:02d}".format(patient_number)
+    print(f"working on patient {patient_number}")
+    fake_nii = nib.load(Path("data") / "segthor_train" / "train" / f"Patient_{patient_number}" / "GT.nii.gz")
     fake_array = np.array(fake_nii.dataobj)
 
     # save non-heart organs
@@ -83,4 +100,4 @@ for patient_number in range(1, 41):
     saved_fake_array[transformed_array == 1] = 2
 
     # save the found array
-    save_array_ass_nii(saved_fake_array, Path("..") / "data" / "segthor_train" / "train" / f"Patient_{patient_number}" / "real_GT.nii.gz", fake_nii)
+    save_array_ass_nii(saved_fake_array, Path("data") / "segthor_train" / "train" / f"Patient_{patient_number}" / "real_GT.nii.gz", fake_nii)
