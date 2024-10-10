@@ -40,7 +40,7 @@ from torch.utils.data import DataLoader
 from dataset import SliceDataset, VolumeDataset
 from ShallowNet import shallowCNN
 from ENet import ENet
-from Models import SAM, UNet
+from Models import UNet
 from UNETR import UNETR
 from utils import (Dcm,
                    class2one_hot,
@@ -57,7 +57,7 @@ datasets_params: dict[str, dict[str, Any]] = {}
 # K for the number of classes
 # Avoids the clases with C (often used for the number of Channel)
 datasets_params["TOY2"] = {'K': 2, 'net': shallowCNN, 'B': 2}
-datasets_params["SEGTHOR"] = {'K': 5, 'net': UNet, 'B': 8}  # Change net to ENet or UNet
+datasets_params["SEGTHOR"] = {'K': 5, 'net': ENet, 'B': 8}  # Change net to ENet or UNet
 datasets_params["SEGTHOR_3D"] = {'K': 5, 'net': UNETR, 'B': 3, 'img_shape': (256, 256, 256), 'input_dim': 1}
 
 

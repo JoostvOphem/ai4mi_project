@@ -1,5 +1,4 @@
 #!/bin/bash
-
 #SBATCH --partition=gpu
 #SBATCH --gpus-per-node=1
 #SBATCH --job-name=test
@@ -8,25 +7,26 @@
 #SBATCH --time=00:59:00
 #SBATCH --output=main_run_%A.out
 
+# Define the MODEL variable
+MODEL="enet"  # Change this to "enet", "unet" or "unetr" as needed
+
 # activate the environment
 source ai4mi/bin/activate
 module load 2022
 module load Python/3.10.4-GCCcore-11.3.0
 
+# Use the MODEL variable to determine which command to run
+if [ "$MODEL" = "enet" ]; then
+    python -O main.py --dataset SEGTHOR --mode full --epoch 100 --dest results/segthor_enet/ce --gpu
+elif [ "$MODEL" = "unet" ]; then
+    python -O main.py --dataset SEGTHOR --mode full --epoch 25 --dest results/segthor_unet/ce --gpu
+elif [ "$MODEL" = "unetr" ]; then
+    python -O main.py --dataset SEGTHOR_3D --mode full --epoch 25 --dest results/segthor_unetr/ce --gpu
+else
+    echo "Invalid MODEL value. Please use 'net', 'unet', or 'unetr'."
+    exit 1
+fi
 
-# For Toy2 dataset
-# python -O main.py --dataset TOY2 --mode full --epoch 25 --dest results/toy2/ce --gpu
-
-
-# For SEGTHOR dataset
-# Enet or UNet -> main.py change the argument to the model you want in datasets_params
-# python -O main.py --dataset SEGTHOR --mode full --epoch 25 --dest results/segthor_enet/ce --gpu
-# python -O main.py --dataset SEGTHOR --mode full --epoch 25 --dest results/segthor_unet/ce --gpu
-
-
-# UNETR works on 3D dataset
-python -O main.py --dataset SEGTHOR_3D --mode full --epoch 25 --dest results/segthor_unetr/ce --gpu
-
-
-# Plot, change the arguments to plot loss curve or dice score 
-python plot.py --metric_file results/segthor_unetr/ce/dice_val.npy --dest results/segthor_unetr/ce/dice_val.png
+# Plot, change the arguments to plot loss curve or dice score
+python plot.py --metric_file results/${MODEL}/ce/loss_tra.npy --dest results/${MODEL}/ce/loss_tra.png
+python plot.py --metric_file results/${MODEL}/ce/dice_val.npy --dest results/${MODEL}/ce/dice_val.png
