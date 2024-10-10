@@ -171,6 +171,66 @@ def meta_dice(sum_str: str, label: Tensor, pred: Tensor, smooth: float = 1e-8) -
 dice_coef = partial(meta_dice, "bk...->bk")
 dice_batch = partial(meta_dice, "bk...->k")  # used for 3d dice
 
+def meta_precision(sum_str: str, label: Tensor, pred: Tensor, smooth: float = 1e-8) -> Tensor:
+    assert label.shape == pred.shape
+    assert one_hot(label)
+    assert one_hot(pred)
+
+    inter_size: Tensor = einsum(sum_str, [intersection(label, pred)]).type(torch.float32)
+    pred_size: Tensor = einsum(sum_str, [pred]).type(torch.float32)
+
+    precision: Tensor = (inter_size + smooth) / (pred_size + smooth)
+    return precision
+
+
+precision_coef = partial(meta_precision, "bk...->bk")
+precision_batch = partial(meta_precision, "bk...->k")  # used for 3d precision
+
+# Recall
+def meta_recall(sum_str: str, label: Tensor, pred: Tensor, smooth: float = 1e-8) -> Tensor:
+    assert label.shape == pred.shape
+    assert one_hot(label)
+    assert one_hot(pred)
+
+    inter_size: Tensor = einsum(sum_str, [intersection(label, pred)]).type(torch.float32)
+    label_size: Tensor = einsum(sum_str, [label]).type(torch.float32)
+
+    recall: Tensor = (inter_size + smooth) / (label_size + smooth)
+    return recall
+
+
+recall_coef = partial(meta_recall, "bk...->bk")
+recall_batch = partial(meta_recall, "bk...->k")  # used for 3d recall
+
+# Jaccard Index (IoU)
+def meta_jaccard(sum_str: str, label: Tensor, pred: Tensor, smooth: float = 1e-8) -> Tensor:
+    assert label.shape == pred.shape
+    assert one_hot(label)
+    assert one_hot(pred)
+
+    inter_size: Tensor = einsum(sum_str, [intersection(label, pred)]).type(torch.float32)
+    union_size: Tensor = einsum(sum_str, [union(label, pred)]).type(torch.float32)
+
+    jaccard: Tensor = (inter_size + smooth) / (union_size + smooth)
+    return jaccard
+
+
+jaccard_coef = partial(meta_jaccard, "bk...->bk")
+jaccard_batch = partial(meta_jaccard, "bk...->k")  # used for 3d jaccard (IoU)
+
+
+def metric_coef(pred_seg, gt, metric):
+	if metric == 'dice':
+		return dice_coef(pred_seg, gt)
+	
+	if metric == 'jaccard':
+		return jaccard_coef(pred_seg, gt)
+		
+	if metric == 'precision':
+		return precision_coef(pred_seg, gt)
+	
+	if metric == 'recall':
+		return recall_coef(pred_seg, gt)
 
 def intersection(a: Tensor, b: Tensor) -> Tensor:
     assert a.shape == b.shape
