@@ -17,16 +17,16 @@ module load Python/3.10.4-GCCcore-11.3.0
 
 # Use the MODEL variable to determine which command to run
 if [ "$MODEL" = "enet" ]; then
-    python -O main.py --dataset SEGTHOR --mode full --epoch 100 --dest results/segthor_enet/ce --gpu --metric dice
+    python -O main.py --dataset SEGTHOR --mode full --epoch 50 --dest results/segthor_enet/ce --gpu --metric dice
 elif [ "$MODEL" = "unet" ]; then
-    python -O main.py --dataset SEGTHOR --mode full --epoch 25 --dest results/segthor_unet/ce --gpu --metric dice
+    python -O main.py --dataset SEGTHOR --mode full --epoch 50 --dest results/segthor_unet/ce --gpu --metric dice
 elif [ "$MODEL" = "unetr" ]; then
-    python -O main.py --dataset SEGTHOR_3D --mode full --epoch 25 --dest results/segthor_unetr/ce --gpu --metric dice
+    python -O main.py --dataset SEGTHOR_3D --mode full --epoch 50 --dest results/segthor_unetr/ce --gpu --metric dice
 else
-    echo "Invalid MODEL value. Please use 'net', 'unet', or 'unetr'."
+    echo "Invalid MODEL value. Please use 'enet', 'unet', or 'unetr'."
     exit 1
 fi
 
 # Plot, change the arguments to plot loss curve or dice score
-python plot.py --metric_file results/${MODEL}/ce/loss_tra.npy --dest results/${MODEL}/ce/loss_tra.png
-python plot.py --metric_file results/${MODEL}/ce/dice_val.npy --dest results/${MODEL}/ce/dice_val.png
+python plot.py --metric_file results/segthor_${MODEL}/ce/loss_tra.npy --dest results/segthor_${MODEL}/ce/loss_tra.png
+python plot.py --metric_file results/segthor_${MODEL}/ce/dice_val.npy --dest results/segthor_${MODEL}/ce/dice_val.png
