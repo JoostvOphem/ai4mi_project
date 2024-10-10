@@ -48,6 +48,10 @@ from utils import (Dcm,
                    probs2class,
                    tqdm_,
                    dice_coef,
+                   jaccard_coef,
+                   precision_coef,
+                   recall_coef,
+                   metric_coef,
                    save_images)
 
 from losses import (CrossEntropy)
@@ -61,7 +65,7 @@ datasets_params["SEGTHOR"] = {'K': 5, 'net': ENet, 'B': 8}  # Change net to ENet
 datasets_params["SEGTHOR_3D"] = {'K': 5, 'net': UNETR, 'B': 3, 'img_shape': (256, 256, 256), 'input_dim': 1}
 
 
-def setup(args) -> tuple[nn.Module, Any, Any, DataLoader, DataLoader, int]:
+def setup(args) -> tuple[nn.Module, Any, Any, DataLoader, DataLoader, int, str]:
     # Networks and scheduler
     gpu: bool = args.gpu and torch.cuda.is_available()
     device = torch.device("cuda") if gpu else torch.device("cpu")
@@ -152,12 +156,12 @@ def setup(args) -> tuple[nn.Module, Any, Any, DataLoader, DataLoader, int]:
 
     args.dest.mkdir(parents=True, exist_ok=True)
 
-    return (net, optimizer, device, train_loader, val_loader, K)
+    return (net, optimizer, device, train_loader, val_loader, K, args.metric)
 
 
 def runTraining(args):
     print(f">>> Setting up to train on {args.dataset} with {args.mode}")
-    (net, optimizer, device, train_loader, val_loader, K) = setup(args)
+    (net, optimizer, device, train_loader, val_loader, K, metric) = setup(args)
 
     if args.mode == "full":
         loss_fn = CrossEntropy(idk=list(range(K)))  # Supervise both background and foreground
@@ -218,7 +222,7 @@ def runTraining(args):
 
                     # Metrics computation, not used for training
                     pred_seg = probs2one_hot(pred_probs)
-                    log_dice[e, j:j + B, :] = dice_coef(pred_seg, gt)  # One DSC value per sample and per class
+                    log_dice[e, j:j + B, :] = metric_coef(pred_seg, gt, metric)  # One Metric value per sample and per class
 
                     loss = loss_fn(pred_probs, gt)
                     log_loss[e, i] = loss.item()  # One loss value per batch (averaged in the loss)
@@ -254,7 +258,7 @@ def runTraining(args):
 
         current_dice: float = log_dice_val[e, :, 1:].mean().item()
         if current_dice > best_dice:
-            print(f">>> Improved dice at epoch {e}: {best_dice:05.3f}->{current_dice:05.3f} DSC")
+            print(f">>> Improved Metric at epoch {e}: {best_dice:05.3f}->{current_dice:05.3f} DSC")
             best_dice = current_dice
             with open(args.dest / "best_epoch.txt", 'w') as f:
                     f.write(str(e))
@@ -276,6 +280,8 @@ def main():
     parser.add_argument('--mode', default='full', choices=['partial', 'full'])
     parser.add_argument('--dest', type=Path, required=True,
                         help="Destination directory to save the results (predictions and weights).")
+    parser.add_argument('--metric', default='dice', choices=['dice', 'jaccard', 'precision', 'recall'],  # Add metric argument
+                        help="Metric to evaluate the model (default: dice).")
 
     parser.add_argument('--gpu', action='store_true')
     parser.add_argument('--debug', action='store_true',
