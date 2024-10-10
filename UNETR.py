@@ -192,26 +192,26 @@ class Transformer(nn.Module):
 
 
 class UNETR(nn.Module):
-    def __init__(self, img_shape=(128, 128, 128), input_dim=4, output_dim=3, embed_dim=768, patch_size=16, num_heads=12, dropout=0.1):
+    def __init__(self, input_dim=1, output_dim=2, embed_dim=768, patch_size=16, num_heads=12, dropout=0.1):
         super().__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.embed_dim = embed_dim
-        self.img_shape = img_shape
+        self.img_shape = (256, 256, 256)
         self.patch_size = patch_size
         self.num_heads = num_heads
         self.dropout = dropout
         self.num_layers = 12
         self.ext_layers = [3, 6, 9, 12]
 
-        self.patch_dim = [int(x / patch_size) for x in img_shape]
+        self.patch_dim = [int(x / patch_size) for x in self.img_shape]
 
         # Transformer Encoder
         self.transformer = \
             Transformer(
                 input_dim,
                 embed_dim,
-                img_shape,
+                self.img_shape,
                 patch_size,
                 num_heads,
                 self.num_layers,
@@ -292,6 +292,3 @@ class UNETR(nn.Module):
         z0 = self.decoder0(z0)
         output = self.decoder0_header(torch.cat([z0, z3], dim=1))
         return output
-    
-    def init_weights(self):
-        pass

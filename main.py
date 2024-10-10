@@ -37,7 +37,7 @@ from torch import nn, Tensor
 from torchvision import transforms
 from torch.utils.data import DataLoader
 
-from dataset import SliceDataset
+from dataset import SliceDataset, VolumeDataset
 from ShallowNet import shallowCNN
 from ENet import ENet
 from Models import SAM, UNet
@@ -58,7 +58,7 @@ datasets_params: dict[str, dict[str, Any]] = {}
 # Avoids the clases with C (often used for the number of Channel)
 datasets_params["TOY2"] = {'K': 2, 'net': shallowCNN, 'B': 2}
 datasets_params["SEGTHOR"] = {'K': 5, 'net': UNet, 'B': 8}  # Change net to ENet or UNet
-datasets_params["SEGTHOR_3D"] = {'K': 5, 'net': UNETR, 'B': 1, 'img_shape': (128, 128, 128), 'input_dim': 1}
+datasets_params["SEGTHOR_3D"] = {'K': 5, 'net': UNETR, 'B': 3, 'img_shape': (256, 256, 256), 'input_dim': 1}
 
 
 def setup(args) -> tuple[nn.Module, Any, Any, DataLoader, DataLoader, int]:
@@ -73,7 +73,7 @@ def setup(args) -> tuple[nn.Module, Any, Any, DataLoader, DataLoader, int]:
     if args.dataset == "SEGTHOR_3D":
         img_shape = datasets_params[args.dataset]['img_shape']
         input_dim = datasets_params[args.dataset]['input_dim']
-        net = net(img_shape=img_shape, input_dim=input_dim, output_dim=K)
+        net = net(input_dim=input_dim, output_dim=K)
     else:
         net = net(1, K)
     
@@ -89,40 +89,62 @@ def setup(args) -> tuple[nn.Module, Any, Any, DataLoader, DataLoader, int]:
     B: int = datasets_params[args.dataset]['B']
     root_dir = Path("data") / args.dataset
 
-    img_transform = transforms.Compose([
-        lambda img: img.convert('L'),
-        lambda img: np.array(img)[np.newaxis, ...],
-        lambda nd: nd / 255,  # max <= 1
-        lambda nd: torch.tensor(nd, dtype=torch.float32)
-    ])
+    if args.dataset == "SEGTHOR_3D":
+        img_transform = transforms.Compose([
+            lambda nd: nd / nd.max(),  # Normalize to [0, 1]
+            lambda nd: torch.tensor(nd, dtype=torch.float32).unsqueeze(0)  # Add channel dimension
+        ])
 
-    gt_transform = transforms.Compose([
-        lambda img: np.array(img)[...],
-        # The idea is that the classes are mapped to {0, 255} for binary cases
-        # {0, 85, 170, 255} for 4 classes
-        # {0, 51, 102, 153, 204, 255} for 6 classes
-        # Very sketchy but that works here and that simplifies visualization
-        lambda nd: nd / (255 / (K - 1)) if K != 5 else nd / 63,  # max <= 1
-        lambda nd: torch.tensor(nd, dtype=torch.int64)[None, ...],  # Add one dimension to simulate batch
-        lambda t: class2one_hot(t, K=K),
-        itemgetter(0)
-    ])
+        gt_transform = transforms.Compose([
+            lambda nd: torch.tensor(nd, dtype=torch.int64),
+            lambda t: class2one_hot(t.unsqueeze(0), K=K),
+            lambda t: t.squeeze(0)  # Remove the extra dimension added by class2one_hot
+        ])
+    else:
+        # Keep the existing 2D transforms
+        img_transform = transforms.Compose([
+            lambda img: img.convert('L'),
+            lambda img: np.array(img)[np.newaxis, ...],
+            lambda nd: nd / 255,  # max <= 1
+            lambda nd: torch.tensor(nd, dtype=torch.float32)
+        ])
 
-    train_set = SliceDataset('train',
-                             root_dir,
-                             img_transform=img_transform,
-                             gt_transform=gt_transform,
-                             debug=args.debug)
+        gt_transform = transforms.Compose([
+            lambda img: np.array(img)[...],
+            lambda nd: nd / (255 / (K - 1)) if K != 5 else nd / 63,  # max <= 1
+            lambda nd: torch.tensor(nd, dtype=torch.int64)[None, ...],  # Add one dimension to simulate batch
+            lambda t: class2one_hot(t, K=K),
+            itemgetter(0)
+        ])
+    
+    if args.dataset == "SEGTHOR_3D":
+        train_set = VolumeDataset('train',
+                            root_dir,
+                            img_transform=img_transform,
+                            gt_transform=gt_transform,
+                            debug=args.debug)
+        val_set = VolumeDataset('val',
+                        root_dir,
+                        img_transform=img_transform,
+                        gt_transform=gt_transform,
+                        debug=args.debug)
+    else:
+        train_set = SliceDataset('train',
+                                root_dir,
+                                img_transform=img_transform,
+                                gt_transform=gt_transform,
+                                debug=args.debug)
+        val_set = SliceDataset('val',
+                            root_dir,
+                            img_transform=img_transform,
+                            gt_transform=gt_transform,
+                            debug=args.debug)
+    
     train_loader = DataLoader(train_set,
                               batch_size=B,
                               num_workers=5,
                               shuffle=True)
 
-    val_set = SliceDataset('val',
-                           root_dir,
-                           img_transform=img_transform,
-                           gt_transform=gt_transform,
-                           debug=args.debug)
     val_loader = DataLoader(val_set,
                             batch_size=B,
                             num_workers=5,
@@ -130,34 +152,12 @@ def setup(args) -> tuple[nn.Module, Any, Any, DataLoader, DataLoader, int]:
 
     args.dest.mkdir(parents=True, exist_ok=True)
 
-    return (net, optimizer, device, train_loader, val_loader, K) #, next(iter(train_loader))
+    return (net, optimizer, device, train_loader, val_loader, K)
 
 
 def runTraining(args):
     print(f">>> Setting up to train on {args.dataset} with {args.mode}")
-    (net, optimizer, device, train_loader, val_loader, K)= setup(args)
-    
-    # # Print information about the first batch
-    # print(f"Batch size: {len(first_batch['images'])}")
-    # print(f"Image tensor shape: {first_batch['images'].shape}")
-    # print(f"Ground truth tensor shape: {first_batch['gts'].shape}")
-    
-    # # Print the first patient's 3D tensor
-    # first_patient_image = first_batch['images'][0]
-    # print(f"First patient image shape: {first_patient_image.shape}")
-    # print("First patient image tensor:")
-    # print(first_patient_image)
-    
-    # # If you want to see a slice of the 3D tensor (assuming it's 3D)
-    # if len(first_patient_image.shape) == 3:
-    #     middle_slice = first_patient_image.shape[0] // 2
-    #     print(f"Middle slice (slice {middle_slice}) of first patient:")
-    #     print(first_patient_image[middle_slice])
-    
-    # # Print some statistics about the tensor
-    # print(f"Tensor min value: {first_patient_image.min()}")
-    # print(f"Tensor max value: {first_patient_image.max()}")
-    # print(f"Tensor mean value: {first_patient_image.mean()}")
+    (net, optimizer, device, train_loader, val_loader, K) = setup(args)
 
     if args.mode == "full":
         loss_fn = CrossEntropy(idk=list(range(K)))  # Supervise both background and foreground
@@ -206,7 +206,12 @@ def runTraining(args):
 
                     # Sanity tests to see we loaded and encoded the data correctly
                     assert 0 <= img.min() and img.max() <= 1
-                    B, _, W, H = img.shape
+                    
+                    # Handle both 2D and 3D data
+                    if args.dataset == "SEGTHOR_3D":
+                        B, C, D, H, W = img.shape
+                    else:
+                        B, C, H, W = img.shape
 
                     pred_logits = net(img)
                     pred_probs = F.softmax(1 * pred_logits, dim=1)  # 1 is the temperature parameter
@@ -227,9 +232,10 @@ def runTraining(args):
                             warnings.filterwarnings('ignore', category=UserWarning)
                             predicted_class: Tensor = probs2class(pred_probs)
                             mult: int = 63 if K == 5 else (255 / (K - 1))
-                            save_images(predicted_class * mult,
+                            save_images(predicted_class,  # Remove the multiplication here
                                         data['stems'],
-                                        args.dest / f"iter{e:03d}" / m)
+                                        args.dest / f"iter{e:03d}" / m,
+                                        is_3d=(args.dataset == "SEGTHOR_3D"))
 
                     j += B  # Keep in mind that _in theory_, each batch might have a different size
                     # For the DSC average: do not take the background class (0) into account:

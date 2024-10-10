@@ -23,7 +23,7 @@
 # SOFTWARE.
 
 
-from torch import einsum
+from torch import einsum, Tensor
 
 from utils import simplex, sset
 
@@ -34,7 +34,7 @@ class CrossEntropy():
         self.idk = kwargs['idk']
         print(f"Initialized {self.__class__.__name__} with {kwargs}")
 
-    def __call__(self, pred_softmax, weak_target):
+    def __call__(self, pred_softmax: Tensor, weak_target: Tensor) -> Tensor:
         assert pred_softmax.shape == weak_target.shape
         assert simplex(pred_softmax)
         assert sset(weak_target, [0, 1])
@@ -42,11 +42,11 @@ class CrossEntropy():
         log_p = (pred_softmax[:, self.idk, ...] + 1e-10).log()
         mask = weak_target[:, self.idk, ...].float()
 
-        loss = - einsum("bkwh,bkwh->", mask, log_p)
+        # Use '...' in einsum to handle both 2D and 3D data
+        loss = - einsum("bk...,bk...->", mask, log_p)
         loss /= mask.sum() + 1e-10
 
         return loss
-
 
 class PartialCrossEntropy(CrossEntropy):
     def __init__(self, **kwargs):

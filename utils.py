@@ -33,6 +33,7 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 from torch import Tensor, einsum
+import nibabel as nib
 
 tqdm_ = partial(tqdm, dynamic_ncols=True,
                 leave=True,
@@ -125,17 +126,32 @@ def probs2one_hot(probs: Tensor) -> Tensor:
 
 
 # Save the raw predictions
-def save_images(segs: Tensor, names: Iterable[str], root: Path) -> None:
-        for seg, name in zip(segs, names):
-                save_path = (root / name).with_suffix(".png")
-                save_path.parent.mkdir(parents=True, exist_ok=True)
-
-                if len(seg.shape) == 2:
-                        Image.fromarray(seg.detach().cpu().numpy().astype(np.uint8)).save(save_path)
-                elif len(seg.shape) == 3:
-                        np.save(str(save_path), seg.detach().cpu().numpy())
+def save_images(segs: Tensor, names: Iterable[str], root: Path, is_3d: bool = False) -> None:
+    for seg, name in zip(segs, names):
+        save_path = (root / name).with_suffix(".png" if not is_3d else ".nii.gz")
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        seg_np = seg.detach().cpu().numpy()
+        
+        if not is_3d:
+            # For 2D data
+            Image.fromarray(seg_np.astype(np.uint8)).save(save_path)
+        else:
+            # For 3D data
+            if len(seg_np.shape) == 3:
+                # If it's already 3D, save as NIfTI
+                # Convert to uint8 or int16 depending on the range of values
+                if seg_np.max() <= 255:
+                    seg_np = seg_np.astype(np.uint8)
                 else:
-                        raise ValueError(seg.shape)
+                    seg_np = seg_np.astype(np.int16)
+                nib.save(nib.Nifti1Image(seg_np, np.eye(4)), str(save_path))
+            elif len(seg_np.shape) == 4:
+                # If it's 4D (e.g., with a channel dimension), save middle slice as PNG
+                middle_slice = seg_np.shape[0] // 2
+                Image.fromarray(seg_np[middle_slice].astype(np.uint8)).save(save_path.with_suffix(".png"))
+            else:
+                raise ValueError(f"Unexpected shape for 3D data: {seg_np.shape}")
 
 
 # Metrics
