@@ -17,11 +17,11 @@ module load Python/3.10.4-GCCcore-11.3.0
 
 # Use the MODEL variable to determine which command to run
 if [ "$MODEL" = "enet" ]; then
-    python -O main.py --dataset SEGTHOR --mode full --epoch 100 --dest results/segthor_enet/ce --gpu
+    python -O main.py --dataset SEGTHOR --mode full --epoch 100 --dest results/segthor_enet/ce --gpu --metric dice
 elif [ "$MODEL" = "unet" ]; then
-    python -O main.py --dataset SEGTHOR --mode full --epoch 25 --dest results/segthor_unet/ce --gpu
+    python -O main.py --dataset SEGTHOR --mode full --epoch 25 --dest results/segthor_unet/ce --gpu --metric dice
 elif [ "$MODEL" = "unetr" ]; then
-    python -O main.py --dataset SEGTHOR_3D --mode full --epoch 25 --dest results/segthor_unetr/ce --gpu
+    python -O main.py --dataset SEGTHOR_3D --mode full --epoch 25 --dest results/segthor_unetr/ce --gpu --metric dice
 else
     echo "Invalid MODEL value. Please use 'net', 'unet', or 'unetr'."
     exit 1
