@@ -75,8 +75,14 @@ def process_patient(id_: str, dest_path: Path, source_path: Path, shape: tuple[i
     img_path.mkdir(parents=True, exist_ok=True)
     gt_path.mkdir(parents=True, exist_ok=True)
 
-    nib.save(nib.Nifti1Image(resized_ct, nib_obj.affine), str(img_path / f"{id_}.nii.gz"))
-    nib.save(nib.Nifti1Image(resized_gt, gt_nib.affine), str(gt_path / f"{id_}.nii.gz"))
+    patient_header = nib_obj.header
+    patient_header["pixdim"] = [1, 1, 1, 1, 1, 1, 1, 1]
+    gt_header = gt_nib.header
+    gt_header["pixdim"] = [1, 1, 1, 1, 1, 1, 1, 1]
+
+    
+    nib.save(nib.Nifti1Image(resized_ct, nib_obj.affine, patient_header), str(img_path / f"{id_}.nii.gz"))
+    nib.save(nib.Nifti1Image(resized_gt, gt_nib.affine, gt_header), str(gt_path / f"{id_}.nii.gz"))
 
     return dx, dy, dz
 

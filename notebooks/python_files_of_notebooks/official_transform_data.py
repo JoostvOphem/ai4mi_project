@@ -100,4 +100,4 @@ for patient_number in range(1, 41):
     saved_fake_array[transformed_array == 1] = 2
 
     # save the found array
-    save_array_ass_nii(saved_fake_array, Path("data") / "segthor_train" / "train" / f"Patient_{patient_number}" / "real_GT.nii.gz", fake_nii)
+    save_array_ass_nii(saved_fake_array, Path("data") / "segthor_train" / "train" / f"Patient_{patient_number}" / "GT.nii.gz", fake_nii)
