@@ -65,6 +65,25 @@ datasets_params["SEGTHOR"] = {'K': 5, 'net': ENet, 'B': 8}  # Change net to ENet
 datasets_params["SEGTHOR_3D"] = {'K': 5, 'net': UNETR, 'B': 3, 'img_shape': (256, 256, 256), 'input_dim': 1}
 
 
+# edited from: https://stackoverflow.com/questions/71998978/early-stopping-in-pytorch
+class EarlyStopper:
+    def __init__(self, patience=1, min_delta=0):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.min_validation_loss = float('inf')
+        self.early_stop = False
+
+    def __call__(self, validation_loss):
+        if validation_loss < self.min_validation_loss:
+            self.min_validation_loss = validation_loss
+            self.counter = 0
+        elif validation_loss > (self.min_validation_loss + self.min_delta):
+            self.counter += 1
+            if self.counter >= self.patience:
+                self.early_stop = True
+
+
 def setup(args) -> tuple[nn.Module, Any, Any, DataLoader, DataLoader, int, str]:
     # Networks and scheduler
     gpu: bool = args.gpu and torch.cuda.is_available()
@@ -169,6 +188,8 @@ def runTraining(args):
         loss_fn = CrossEntropy(idk=[0, 1, 3, 4])  # Do not supervise the heart (class 2)
     else:
         raise ValueError(args.mode, args.dataset)
+    
+    early_stopper = EarlyStopper(patience=args.early_stopping_patience, min_delta=args.early_stopping_min_delta)
 
     # Notice one has the length of the _loader_, and the other one of the _dataset_
     log_loss_tra: Tensor = torch.zeros((args.epochs, len(train_loader)))
@@ -240,6 +261,7 @@ def runTraining(args):
                                         data['stems'],
                                         args.dest / f"iter{e:03d}" / m,
                                         is_3d=(args.dataset == "SEGTHOR_3D"))
+                        early_stopper(loss.item())
 
                     j += B  # Keep in mind that _in theory_, each batch might have a different size
                     # For the DSC average: do not take the background class (0) into account:
@@ -270,6 +292,10 @@ def runTraining(args):
 
             torch.save(net, args.dest / "bestmodel.pkl")
             torch.save(net.state_dict(), args.dest / "bestweights.pt")
+        
+        if early_stopper.early_stop:
+            print(f">>> Stopping early at epoch {e}.")
+            break
 
 
 def main():
@@ -287,6 +313,10 @@ def main():
     parser.add_argument('--debug', action='store_true',
                         help="Keep only a fraction (10 samples) of the datasets, "
                              "to test the logic around epochs and logging easily.")
+    parser.add_argument('--early_stopping_patience', type=int, default=3,
+                        help="Amount of non-improving epochs after which to stop early.")
+    parser.add_argument('--early_stopping_min_delta', type=float, default=10.0,
+                        help="Min difference in validation loss to consider non-improving.")
 
     args = parser.parse_args()
 
