@@ -34,6 +34,10 @@ from PIL import Image
 from tqdm import tqdm
 from torch import Tensor, einsum
 import nibabel as nib
+from scipy.ndimage import binary_erosion, binary_dilation, distance_transform_edt
+from scipy.spatial.distance import cdist
+from scipy.spatial import cKDTree
+from skimage.segmentation import find_boundaries as skimage_find_boundaries
 
 tqdm_ = partial(tqdm, dynamic_ncols=True,
                 leave=True,
@@ -223,14 +227,23 @@ def metric_coef(pred_seg, gt, metric):
 	if metric == 'dice':
 		return dice_coef(pred_seg, gt)
 	
-	if metric == 'jaccard':
+	elif metric == 'jaccard':
 		return jaccard_coef(pred_seg, gt)
 		
-	if metric == 'precision':
+	elif metric == 'precision':
 		return precision_coef(pred_seg, gt)
 	
-	if metric == 'recall':
+	elif metric == 'recall':
 		return recall_coef(pred_seg, gt)
+	
+	elif metric == 'nsd':
+		return nsd(pred_seg, gt, threshold=1.0)
+		
+	elif metric == 'masd':
+		return masd(pred_seg, gt)
+		
+	else:
+		raise ValueError(f"Unsupported metric: {metric}")
 
 def intersection(a: Tensor, b: Tensor) -> Tensor:
     assert a.shape == b.shape
@@ -252,3 +265,73 @@ def union(a: Tensor, b: Tensor) -> Tensor:
     assert sset(res, [0, 1])
 
     return res
+
+
+def downsample_boundary(boundary, factor=10):
+    return boundary[::factor]
+
+def masd(pred_seg, gt_seg):
+    # Find the boundaries of the predicted and ground truth segmentations
+    pred_boundary = find_boundaries(pred_seg)
+    gt_boundary = find_boundaries(gt_seg)
+
+    d_pred_to_gt = compute_average_surface_distance(pred_boundary, gt_boundary)
+    d_gt_to_pred = compute_average_surface_distance(gt_boundary, pred_boundary)
+    return (d_pred_to_gt + d_gt_to_pred) / 2
+
+
+def nsd(pred_seg, gt_seg, threshold=1.0, downsample_factor=10):
+    pred_boundary = find_boundaries(pred_seg)
+    gt_boundary = find_boundaries(gt_seg)
+
+    pred_boundary = downsample_boundary(pred_boundary, downsample_factor)
+    gt_boundary = downsample_boundary(gt_boundary, downsample_factor)
+    
+    d_pred_to_gt = compute_average_surface_distance(pred_boundary, gt_boundary)
+    d_gt_to_pred = compute_average_surface_distance(gt_boundary, pred_boundary)
+
+    # Compute NSD based on a given threshold
+    nsd_value = np.mean(d_pred_to_gt < threshold) * np.mean(d_gt_to_pred < threshold)
+    
+    return nsd_value
+
+def compute_average_surface_distance(boundary1, boundary2):
+    boundary1_coords = np.argwhere(boundary1)
+    boundary2_coords = np.argwhere(boundary2)
+
+    if boundary1_coords.size == 0 or boundary2_coords.size == 0:
+        return np.inf  # Return infinity if one of the boundaries is empty
+
+    # Create KDTree for boundary points
+    tree1 = cKDTree(boundary1_coords)
+    tree2 = cKDTree(boundary2_coords)
+    distances1, _ = tree1.query(boundary2_coords)
+    distances2, _ = tree2.query(boundary1_coords)
+
+    avg_distance1 = distances1.mean() if distances1.size > 0 else np.inf
+    avg_distance2 = distances2.mean() if distances2.size > 0 else np.inf
+    return (avg_distance1 + avg_distance2) / 2
+    
+    
+
+def find_boundaries(segmentation, mode='outer'):
+    segmentation = np.asarray(segmentation)
+    
+    if segmentation.ndim == 2:
+        return skimage_find_boundaries(segmentation, mode=mode)
+    
+    elif segmentation.ndim == 3:
+        boundaries = np.zeros_like(segmentation, dtype=np.bool_)
+        for i in range(segmentation.shape[0]):  # For each slice or volume in 3D
+            boundaries[i] = skimage_find_boundaries(segmentation[i], mode=mode)
+        return boundaries
+    
+    elif segmentation.ndim == 4:
+        boundaries = np.zeros_like(segmentation, dtype=np.bool_)
+        for b in range(segmentation.shape[0]):  # For each batch
+            for i in range(segmentation.shape[1]):  # For each slice in the batch
+                boundaries[b, i] = skimage_find_boundaries(segmentation[b, i], mode=mode)
+        return boundaries
+    
+    else:
+        raise ValueError("Segmentation map must be 2D or 3D.")
