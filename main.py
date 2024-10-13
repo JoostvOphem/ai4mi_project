@@ -51,6 +51,8 @@ from utils import (Dcm,
                    jaccard_coef,
                    precision_coef,
                    recall_coef,
+                   nsd,
+                   masd,
                    metric_coef,
                    save_images)
 
@@ -306,7 +308,7 @@ def main():
     parser.add_argument('--mode', default='full', choices=['partial', 'full'])
     parser.add_argument('--dest', type=Path, required=True,
                         help="Destination directory to save the results (predictions and weights).")
-    parser.add_argument('--metric', default='dice', choices=['dice', 'jaccard', 'precision', 'recall'],  # Add metric argument
+    parser.add_argument('--metric', default='dice', choices=['dice', 'jaccard', 'precision', 'recall', 'nsd', 'masd'],  # Add metric argument
                         help="Metric to evaluate the model (default: dice).")
 
     parser.add_argument('--gpu', action='store_true')
