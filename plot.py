@@ -41,7 +41,7 @@ def run(args: argparse.Namespace) -> None:
     fig = plt.figure()
     ax = fig.gca()
     ax.set_title(str(args.metric_file))
-    # ax.set_ylim(0, 1)
+    ax.set_ylim(0, 1)
 
     epcs = np.arange(E)
 

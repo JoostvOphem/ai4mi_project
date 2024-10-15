@@ -5,14 +5,15 @@ import numpy as np
 from PIL import Image
 import tqdm
 
-def create_2d_slices(input_path, output_path, file_prefix):
+def create_2d_slices(input_path, output_path, file_prefix, data_type):
     img = nib.load(input_path)
     img_data = img.get_fdata()
     num_slices = img_data.shape[2]
 
+    img_data *= 63 if data_type == 'gt' else img_data
+
     for i in range(num_slices):
         slice_2d = img_data[:, :, i]
-        # slice_2d = np.clip(slice_2d * 255, 0, 255).astype(np.uint8)
         img_slice = Image.fromarray(slice_2d.astype(np.uint8), mode='L')  # 'L' mode for 8-bit grayscale
 
         # Save the image
@@ -32,7 +33,7 @@ def process_dataset(input_root, output_root):
                 if filename.endswith('.nii.gz'):
                     patient_id = filename.split('.')[0]
                     input_file = os.path.join(input_path, filename)
-                    create_2d_slices(input_file, output_path, patient_id)
+                    create_2d_slices(input_file, output_path, patient_id, data_type)
 
 def main():
     parser = argparse.ArgumentParser(description="Process 3D medical images to 2D slices.")
