@@ -30,7 +30,7 @@ def process_dataset(input_root, output_root):
 
             # Process each file in the input directory
             for filename in tqdm.tqdm(os.listdir(input_path)):
-                if filename.endswith('.nii.gz'):
+                if filename.endswith('.nii.gz') or filename.endswith('.nii'):
                     patient_id = filename.split('.')[0]
                     input_file = os.path.join(input_path, filename)
                     create_2d_slices(input_file, output_path, patient_id, data_type)
