@@ -1,0 +1,31 @@
+#!/bin/bash
+#SBATCH --partition=gpu
+#SBATCH --gpus-per-node=1
+#SBATCH --job-name=all_aug
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=18
+#SBATCH --time=03:00:00
+#SBATCH --output=all_aug_%A.out
+
+# Activate the environment
+source ai4mi/bin/activate
+module load 2022
+module load Python/3.10.4-GCCcore-11.3.0
+
+# Loop through all models
+for MODEL in enet unet nn-unet unetr; do
+    echo "Running experiment for $MODEL"
+    
+    if [ "$MODEL" = "enet" ] || [ "$MODEL" = "unet" ] || [ "$MODEL" = "nn-unet" ]; then
+        python -O main.py --dataset SEGTHOR_ALL --mode full --epoch 50 --dest results/all_augmentation_${MODEL}/ce --gpu --metric dice
+    elif [ "$MODEL" = "unetr" ]; then
+        python -O main.py --dataset SEGTHOR_3D_ALL --mode full --epoch 50 --dest results/all_augmentation_${MODEL}/ce --gpu --metric dice
+    else
+        echo "Invalid MODEL value: $MODEL"
+        continue
+    fi
+    
+    # Plot loss curve and dice score
+    python plot.py --metric_file results/all_augmentation_${MODEL}/ce/loss_tra.npy --dest results/all_augmentation_${MODEL}/ce/loss_tra.png
+    python plot.py --metric_file results/all_augmentation_${MODEL}/ce/dice_val.npy --dest results/all_augmentation_${MODEL}/ce/dice_val.png
+done

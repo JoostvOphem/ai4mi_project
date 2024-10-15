@@ -126,7 +126,7 @@ class ZebraArtifactTransform(AbstractTransform):
         data_dict['data'] = data + zebra_pattern
         return data_dict
 
-def spatial_transform(patch_size, percent_scaling, percent_rotation):
+def spatial_transform(patch_size, percent_scaling=1, percent_rotation=1):
     return SpatialTransform(
         patch_size=patch_size,
         patch_center_dist_from_border=None,
