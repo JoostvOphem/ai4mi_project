@@ -12,8 +12,8 @@ def create_2d_slices(input_path, output_path, file_prefix):
 
     for i in range(num_slices):
         slice_2d = img_data[:, :, i]
-        slice_2d = np.clip(slice_2d * 255, 0, 255).astype(np.uint8)
-        img_slice = Image.fromarray(slice_2d, mode='L')  # 'L' mode for 8-bit grayscale
+        # slice_2d = np.clip(slice_2d * 255, 0, 255).astype(np.uint8)
+        img_slice = Image.fromarray(slice_2d.astype(np.uint8), mode='L')  # 'L' mode for 8-bit grayscale
 
         # Save the image
         img_slice.save(os.path.join(output_path, f"{file_prefix}_{i:04d}.png"))
@@ -36,12 +36,12 @@ def process_dataset(input_root, output_root):
 
 def main():
     parser = argparse.ArgumentParser(description="Process 3D medical images to 2D slices.")
-    parser.add_argument("--source", required=True, help="Source folder containing the SEGTHOR_3D dataset")
-    parser.add_argument("--destination", required=True, help="Destination folder for the processed 2D slices")
+    parser.add_argument("--src", required=True, help="Source folder containing the SEGTHOR_3D dataset")
+    parser.add_argument("--dest", required=True, help="Destination folder for the processed 2D slices")
     args = parser.parse_args()
 
-    input_root = args.source
-    output_root = args.destination
+    input_root = args.src
+    output_root = args.dest
 
     process_dataset(input_root, output_root)
     print(f"Processing complete. 2D slices have been saved in the {output_root} directory.")
