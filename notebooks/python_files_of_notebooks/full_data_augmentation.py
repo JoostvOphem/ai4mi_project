@@ -280,49 +280,50 @@ for file in os.listdir(Path("data") / "SEGTHOR_3D" / "train" / "gt"):
 
 
 # # fill the validation
-# for file in os.listdir(Path("data") / "SEGTHOR_3D" / "val" / "gt"):
+for file in os.listdir(Path("data") / "SEGTHOR_3D" / "val" / "gt"):
 
-#     patient_number = file.split(".")[0][-2:]
-#     patient_file_path = Path("data") / "SEGTHOR_3D" / "val" / "img" / file
-#     gt_file_path = Path("data") / "SEGTHOR_3D" / "val" / "gt" / file
+    patient_number = file.split(".")[0][-2:]
+    patient_file_path = Path("data") / "SEGTHOR_3D" / "val" / "img" / file
+    gt_file_path = Path("data") / "SEGTHOR_3D" / "val" / "gt" / file
 
-#     new_patient_file_path_med = Path("data") / "SEGTHOR_3D_MED" / "val" / "img"
-#     new_gt_file_path_med = Path("data") / "SEGTHOR_3D_MED" / "val" / "gt"
+    new_patient_file_path_med = Path("data") / "SEGTHOR_3D_MED" / "val" / "img"
+    new_gt_file_path_med = Path("data") / "SEGTHOR_3D_MED" / "val" / "gt"
 
-#     new_patient_file_path_ai = Path("data") / "SEGTHOR_3D_AI" / "val" / "img"
-#     new_gt_file_path_ai = Path("data") / "SEGTHOR_3D_AI" / "val" / "gt"
+    new_patient_file_path_ai = Path("data") / "SEGTHOR_3D_AI" / "val" / "img"
+    new_gt_file_path_ai = Path("data") / "SEGTHOR_3D_AI" / "val" / "gt"
 
-#     new_patient_file_path_all = Path("data") / "SEGTHOR_3D_ALL" / "val" / "img"
-#     new_gt_file_path_all = Path("data") / "SEGTHOR_3D_ALL" / "val" / "gt"
+    new_patient_file_path_all = Path("data") / "SEGTHOR_3D_ALL" / "val" / "img"
+    new_gt_file_path_all = Path("data") / "SEGTHOR_3D_ALL" / "val" / "gt"
 
-#     patient_data = nib.load(patient_file_path)
-#     patient_nii = copy.deepcopy(patient_data)
-#     patient_data = patient_data.get_fdata()
-#     patient_data = patient_data[np.newaxis, np.newaxis, ...]
+    patient_data = nib.load(patient_file_path)
+    patient_nii = copy.deepcopy(patient_data)
+    patient_data = patient_data.get_fdata()
+    patient_data = patient_data[np.newaxis, np.newaxis, ...]
 
-#     gt_data = nib.load(gt_file_path)
-#     gt_nii = copy.deepcopy(gt_data)
-#     gt_data = gt_data.get_fdata()
-#     gt_data = gt_data[np.newaxis, np.newaxis, ...]
+    gt_data = nib.load(gt_file_path)
+    gt_nii = copy.deepcopy(gt_data)
+    gt_data = gt_data.get_fdata()
+    gt_data = gt_data[np.newaxis, np.newaxis, ...]
 
-#     MED_results = apply_transformations(gt_data, image_data, MED_transforms, gt_transforms)
-#     AI_results = apply_transformations(gt_data, image_data, AI_transforms, gt_transforms)
-#     ALL_results = apply_transformations(gt_data, image_data, MED_transforms, gt_transforms)
+    # MED_results = apply_transformations(gt_data, image_data, MED_transforms, gt_transforms)
+    AI_results = apply_transformations(gt_data, image_data, AI_transforms, gt_transforms)
+    # ALL_results = apply_transformations(gt_data, image_data, MED_transforms, gt_transforms)
     
-#     patnum = 0
-#     gtnum = 0
-#     for i, (MED_result, AI_result, ALL_result) in enumerate(zip(MED_results, AI_results, ALL_results)):
-#         if i % 2 == 0:
-#             # patients
-#             patnum += 1
-#             patnum_in_amt = "{:04d}".format(patnum)
-#             save_array_as_nii(MED_result, new_patient_file_path_med / f"Patient_{patient_number}_{patnum_in_amt}", patient_nii)
-#             save_array_as_nii(AI_result, new_patient_file_path_ai / f"Patient_{patient_number}_{patnum_in_amt}", patient_nii)
-#             save_array_as_nii(ALL_result, new_patient_file_path_all / f"Patient_{patient_number}_{patnum_in_amt}", patient_nii)
-#         else:
-#             # GT
-#             gtnum += 1
-#             gtnum_in_amt = "{:04d}".format(gtnum)
-#             save_array_as_nii(MED_result, new_gt_file_path_med / f"Patient_{patient_number}_{patnum_in_amt}", gt_nii)
-#             save_array_as_nii(AI_result, new_gt_file_path_ai / f"Patient_{patient_number}_{patnum_in_amt}", gt_nii)
-#             save_array_as_nii(ALL_result, new_gt_file_path_all / f"Patient_{patient_number}_{patnum_in_amt}", gt_nii)
+    patnum = 0
+    gtnum = 0
+    # for i, (MED_result, AI_result, ALL_result) in enumerate(zip(MED_results, AI_results, ALL_results)):
+    for i, AI_result in enumerate(AI_results):
+        if i % 2 == 1:
+            # patients
+            patnum += 1
+            patnum_in_amt = "{:04d}".format(patnum)
+            save_array_as_nii(MED_result, new_patient_file_path_med / f"Patient_{patient_number}_{patnum_in_amt}", patient_nii)
+            save_array_as_nii(AI_result, new_patient_file_path_ai / f"Patient_{patient_number}_{patnum_in_amt}", patient_nii)
+            save_array_as_nii(ALL_result, new_patient_file_path_all / f"Patient_{patient_number}_{patnum_in_amt}", patient_nii)
+        else:
+            # GT
+            gtnum += 1
+            gtnum_in_amt = "{:04d}".format(gtnum)
+            save_array_as_nii(MED_result, new_gt_file_path_med / f"Patient_{patient_number}_{patnum_in_amt}", gt_nii)
+            save_array_as_nii(AI_result, new_gt_file_path_ai / f"Patient_{patient_number}_{patnum_in_amt}", gt_nii)
+            save_array_as_nii(ALL_result, new_gt_file_path_all / f"Patient_{patient_number}_{patnum_in_amt}", gt_nii)
