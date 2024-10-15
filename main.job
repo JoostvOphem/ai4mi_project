@@ -17,7 +17,7 @@ module load Python/3.10.4-GCCcore-11.3.0
 
 # Use the MODEL variable to determine which command to run
 if [ "$MODEL" = "enet" ]; then
-    python -O main.py --dataset SEGTHOR --mode full --epoch 50 --dest results/segthor_enet/ce --gpu --metric dice
+    python -O main.py --model "$MODEL" --dataset SEGTHOR --mode full --epoch 50 --dest results/segthor_enet/ce --gpu --metric dice
 elif [ "$MODEL" = "unet" ]; then
     python -O main.py --dataset SEGTHOR --mode full --epoch 50 --dest results/segthor_unet/ce --gpu --metric dice
 elif [ "$MODEL" = "unetr" ]; then
@@ -30,7 +30,3 @@ fi
 # Plot, change the arguments to plot loss curve or dice score
 python plot.py --metric_file results/segthor_${MODEL}/ce/loss_tra.npy --dest results/segthor_${MODEL}/ce/loss_tra.png
 python plot.py --metric_file results/segthor_${MODEL}/ce/dice_val.npy --dest results/segthor_${MODEL}/ce/dice_val.png
-
-
-
-python -O main.py --dataset TOY2 --mode full --epoch 1 --dest results/segthor_enet/ce --gpu --metric dice

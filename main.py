@@ -62,6 +62,7 @@ from losses import (CrossEntropy)
 datasets_params: dict[str, dict[str, Any]] = {}
 # K for the number of classes
 # Avoids the clases with C (often used for the number of Channel)
+models = {'enet':ENet, 'unet':UNet, 'unetr':UNETR, 'shallowcnn':shallowCNN}
 datasets_params["TOY2"] = {'K': 2, 'net': shallowCNN, 'B': 2}
 datasets_params["SEGTHOR"] = {'K': 5, 'net': ENet, 'B': 8}  # Change net to ENet or UNet
 datasets_params["SEGTHOR_3D"] = {'K': 5, 'net': UNETR, 'B': 3, 'img_shape': (256, 256, 256), 'input_dim': 1}
@@ -93,7 +94,7 @@ def setup(args) -> tuple[nn.Module, Any, Any, DataLoader, DataLoader, int, str]:
     print(f">> Picked {device} to run experiments")
 
     K: int = datasets_params[args.dataset]['K']
-    net = datasets_params[args.dataset]['net']
+    net = models[args.model]
 
     if args.dataset == "SEGTHOR_3D":
         img_shape = datasets_params[args.dataset]['img_shape']
@@ -303,6 +304,7 @@ def runTraining(args):
 def main():
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('--model', default='enet', type=str)
     parser.add_argument('--epochs', default=200, type=int)
     parser.add_argument('--dataset', default='TOY2', choices=list(datasets_params.keys()))
     parser.add_argument('--mode', default='full', choices=['partial', 'full'])

@@ -10,7 +10,7 @@ def create_2d_slices(input_path, output_path, file_prefix, data_type):
     img_data = img.get_fdata()
     num_slices = img_data.shape[2]
 
-    img_data *= 63 if data_type == 'gt' else img_data
+    img_data *= 63 if data_type == 'gt' else np.clip(img_data * 255, 0, 255)
 
     for i in range(num_slices):
         slice_2d = img_data[:, :, i]
