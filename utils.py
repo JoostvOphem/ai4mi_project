@@ -315,23 +315,30 @@ def compute_average_surface_distance(boundary1, boundary2):
     
 
 def find_boundaries(segmentation, mode='outer'):
-    segmentation = np.asarray(segmentation)
+    # If the input is a PyTorch tensor, move it to the CPU and convert to NumPy
+    if isinstance(segmentation, torch.Tensor):
+        segmentation = segmentation.cpu().numpy()
     
+    segmentation = np.asarray(segmentation)
+
+    # 2D
     if segmentation.ndim == 2:
         return skimage_find_boundaries(segmentation, mode=mode)
-    
+
+    # 3D
     elif segmentation.ndim == 3:
         boundaries = np.zeros_like(segmentation, dtype=np.bool_)
-        for i in range(segmentation.shape[0]):  # For each slice or volume in 3D
+        for i in range(segmentation.shape[0]):  # For each slice
             boundaries[i] = skimage_find_boundaries(segmentation[i], mode=mode)
         return boundaries
-    
+
+    # 4D
     elif segmentation.ndim == 4:
         boundaries = np.zeros_like(segmentation, dtype=np.bool_)
         for b in range(segmentation.shape[0]):  # For each batch
             for i in range(segmentation.shape[1]):  # For each slice in the batch
                 boundaries[b, i] = skimage_find_boundaries(segmentation[b, i], mode=mode)
         return boundaries
-    
+
     else:
         raise ValueError("Segmentation map must be 2D or 3D.")
