@@ -275,7 +275,7 @@ for file in os.listdir(Path("data") / "SEGTHOR_3D" / "train" / "gt"):
             gtnum += 1
             gtnum_in_amt = "{:04d}".format(gtnum)
             # save_array_as_nii(MED_result, new_gt_file_path_med / f"Patient_{patient_number}_{patnum_in_amt}", gt_nii)
-            save_array_as_nii(AI_result, new_gt_file_path_ai / f"Patient_{patient_number}_{patnum_in_amt}", gt_nii)
+            save_array_as_nii(AI_result, new_gt_file_path_ai / f"Patient_{patient_number}_{gtnum_in_amt}", gt_nii)
             # save_array_as_nii(ALL_result, new_gt_file_path_all / f"Patient_{patient_number}_{patnum_in_amt}", gt_nii)
 
 
