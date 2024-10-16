@@ -5,10 +5,10 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=18
 #SBATCH --time=00:59:00
-#SBATCH --output=enet_masd_%A.out
+#SBATCH --output=unetr_combine_loss_%A.out
 
 # Define the MODEL variable
-MODEL="enet"  # Change this to "enet", "unet" or "unetr" as needed
+MODEL="unetr"  # Change this to "enet", "unet" or "unetr" as needed
 
 # activate the environment
 source ai4mi/bin/activate
@@ -17,16 +17,16 @@ module load Python/3.10.4-GCCcore-11.3.0
 
 # Use the MODEL variable to determine which command to run
 if [ "$MODEL" = "enet" ]; then
-    python -O main.py --model "$MODEL" --dataset SEGTHOR --mode full --epoch 50 --dest results/segthor_enet/ce --gpu --metric masd
+    python -O main.py --model "$MODEL" --dataset SEGTHOR --mode full --epoch 50 --dest results/segthor_enet/ce --gpu --metric dice
 elif [ "$MODEL" = "unet" ]; then
     python -O main.py --model "$MODEL" --dataset SEGTHOR --mode full --epoch 50 --dest results/segthor_unet/ce --gpu --metric dice
 elif [ "$MODEL" = "unetr" ]; then
-    python -O main.py --model "$MODEL" --dataset SEGTHOR_3D --mode full --epoch 50 --dest results/segthor_unetr/ce --gpu --metric dice
+    python -O main.py --model "$MODEL" --dataset SEGTHOR_3D --mode full --epoch 100 --dest results/segthor_unetr/ce --gpu --metric dice
 else
     echo "Invalid MODEL value. Please use 'enet', 'unet', or 'unetr'."
     exit 1
 fi
 
 # Plot, change the arguments to plot loss curve or dice score
-python plot.py --metric_file results/segthor_${MODEL}/ce/loss_tra.npy --dest results/segthor_${MODEL}/ce/loss_tra.png
+# python plot.py --metric_file results/segthor_${MODEL}/ce/loss_tra.npy --dest results/segthor_${MODEL}/ce/loss_tra.png
 python plot.py --metric_file results/segthor_${MODEL}/ce/dice_val.npy --dest results/segthor_${MODEL}/ce/dice_val.png

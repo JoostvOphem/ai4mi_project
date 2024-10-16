@@ -51,3 +51,37 @@ class CrossEntropy():
 class PartialCrossEntropy(CrossEntropy):
     def __init__(self, **kwargs):
         super().__init__(idk=[1], **kwargs)
+
+class DiceLoss:
+    def __init__(self, **kwargs):
+        self.idk = kwargs['idk']
+        self.smooth = 1e-5
+        print(f"Initialized {self.__class__.__name__} with {kwargs}")
+
+    def __call__(self, pred_softmax: Tensor, weak_target: Tensor) -> Tensor:
+        assert pred_softmax.shape == weak_target.shape
+        assert simplex(pred_softmax)
+        assert sset(weak_target, [0, 1])
+
+        pred = pred_softmax[:, self.idk, ...]
+        target = weak_target[:, self.idk, ...].float()
+
+        intersection = (pred * target).sum(dim=(2, 3, 4) if pred.dim() == 5 else (2, 3))
+        union = pred.sum(dim=(2, 3, 4) if pred.dim() == 5 else (2, 3)) + target.sum(dim=(2, 3, 4) if pred.dim() == 5 else (2, 3))
+
+        dice = (2. * intersection + self.smooth) / (union + self.smooth)
+        loss = 1 - dice.mean()
+
+        return loss
+    
+class CombinedLoss:
+    def __init__(self, **kwargs):
+        self.ce_loss = CrossEntropy(**kwargs)
+        self.dice_loss = DiceLoss(**kwargs)
+        self.alpha = kwargs.get('alpha', 0.5)
+        print(f"Initialized {self.__class__.__name__} with {kwargs}")
+
+    def __call__(self, pred_softmax: Tensor, weak_target: Tensor) -> Tensor:
+        ce_loss = self.ce_loss(pred_softmax, weak_target)
+        dice_loss = self.dice_loss(pred_softmax, weak_target)
+        return self.alpha * ce_loss + (1 - self.alpha) * dice_loss

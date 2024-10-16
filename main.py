@@ -56,7 +56,9 @@ from utils import (Dcm,
                    metric_coef,
                    save_images)
 
-from losses import (CrossEntropy)
+from losses import (CrossEntropy,
+                    DiceLoss,
+                    CombinedLoss)
 
 
 datasets_params: dict[str, dict[str, Any]] = {}
@@ -65,7 +67,7 @@ datasets_params: dict[str, dict[str, Any]] = {}
 models = {'enet':ENet, 'unet':UNet, 'unetr':UNETR, 'shallowcnn':shallowCNN}
 datasets_params["TOY2"] = {'K': 2, 'net': shallowCNN, 'B': 2}
 datasets_params["SEGTHOR"] = {'K': 5, 'net': ENet, 'B': 8}  # Change net to ENet or UNet
-datasets_params["SEGTHOR_3D"] = {'K': 5, 'net': UNETR_monai, 'B': 1, 'img_shape': (128, 128, 64), 'input_dim': 1}
+datasets_params["SEGTHOR_3D"] = {'K': 5, 'net': UNETR_monai, 'B': 4, 'img_shape': (128, 128, 64), 'input_dim': 1}
 
 
 # edited from: https://stackoverflow.com/questions/71998978/early-stopping-in-pytorch
@@ -185,10 +187,12 @@ def runTraining(args):
     print(f">>> Setting up to train on {args.dataset} with {args.mode}")
     (net, optimizer, device, train_loader, val_loader, K, metric) = setup(args)
 
-    if args.mode == "full":
+    if args.mode == "full" and args.model != "unetr":
         loss_fn = CrossEntropy(idk=list(range(K)))  # Supervise both background and foreground
     elif args.mode in ["partial"] and args.dataset in ['SEGTHOR', 'SEGTHOR_3D', 'SEGTHOR_STUDENTS']:
         loss_fn = CrossEntropy(idk=[0, 1, 3, 4])  # Do not supervise the heart (class 2)
+    elif args.mode == "full" and args.model == "unetr":
+        loss_fn = DiceLoss(idk=list(range(K)))
     else:
         raise ValueError(args.mode, args.dataset)
     
