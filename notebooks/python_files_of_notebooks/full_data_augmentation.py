@@ -177,8 +177,8 @@ def save_array_as_nii(array, filename, niifile):
         None
     """
     # Convert NumPy array to a NIfTI image
-
-    # array = array.reshape(128,128,128)
+    x, y, z = array.shape[-3:]
+    array = array.reshape(x,y,z)
     
     nii_image = nib.Nifti1Image(array, affine=niifile.affine, header=niifile.header)
     
@@ -307,8 +307,8 @@ for file in os.listdir(Path("data") / "SEGTHOR_3D" / "val" / "gt"):
     gt_data = gt_data.get_fdata()
     gt_data = gt_data[np.newaxis, np.newaxis, ...]
 
-    # MED_results = apply_transformations(gt_data, image_data, MED_transforms, gt_transforms)
-    AI_results = apply_transformations(gt_data, image_data, AI_transforms, gt_transforms)
+    MED_results = apply_transformations(gt_data, image_data, MED_transforms, gt_transforms)
+    # AI_results = apply_transformations(gt_data, image_data, AI_transforms, gt_transforms)
     # ALL_results = apply_transformations(gt_data, image_data, MED_transforms, gt_transforms)
     
     patnum = 0
