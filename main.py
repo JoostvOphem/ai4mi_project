@@ -40,7 +40,7 @@ from torch.utils.data import DataLoader
 from dataset import SliceDataset, VolumeDataset
 from ShallowNet import shallowCNN
 from ENet import ENet
-from Models import UNet
+from Models import UNet, UNETR_monai
 from UNETR import UNETR
 from utils import (Dcm,
                    class2one_hot,
@@ -65,7 +65,7 @@ datasets_params: dict[str, dict[str, Any]] = {}
 models = {'enet':ENet, 'unet':UNet, 'unetr':UNETR, 'shallowcnn':shallowCNN}
 datasets_params["TOY2"] = {'K': 2, 'net': shallowCNN, 'B': 2}
 datasets_params["SEGTHOR"] = {'K': 5, 'net': ENet, 'B': 8}  # Change net to ENet or UNet
-datasets_params["SEGTHOR_3D"] = {'K': 5, 'net': UNETR, 'B': 3, 'img_shape': (256, 256, 256), 'input_dim': 1}
+datasets_params["SEGTHOR_3D"] = {'K': 5, 'net': UNETR_monai, 'B': 1, 'img_shape': (128, 128, 64), 'input_dim': 1}
 
 
 # edited from: https://stackoverflow.com/questions/71998978/early-stopping-in-pytorch
