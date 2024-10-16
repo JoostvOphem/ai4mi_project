@@ -70,7 +70,7 @@ class PartialVolumeArtifactTransform(AbstractTransform):
         return data_dict
     
 class StreakArtifactTransform(AbstractTransform):
-    def __init__(self, num_streaks=10, intensity_decrease=500):
+    def __init__(self, num_streaks=10, intensity_decrease=200):
         self.num_streaks = num_streaks
         self.intensity_decrease = intensity_decrease
 
@@ -83,7 +83,7 @@ class StreakArtifactTransform(AbstractTransform):
         return data_dict
     
 class RingArtifactTransform(Transform):
-    def __init__(self, frequency_range=(2, 50), amplitude_range=(10, 500)):
+    def __init__(self, frequency_range=(2, 50), amplitude_range=(3, 40)):
         self.frequency = np.random.uniform(*frequency_range)
         self.amplitude = np.random.uniform(*amplitude_range)
 
@@ -104,7 +104,7 @@ class RingArtifactTransform(Transform):
         return data_dict
         
 class ZebraArtifactTransform(AbstractTransform):
-    def __init__(self, stripe_frequency_range=(5, 15), amplitude_range=(30, 70)):
+    def __init__(self, stripe_frequency_range=(5, 15), amplitude_range=(10, 30)):
         # Instead of fixed values, we now define ranges for stripe frequency and amplitude
         self.stripe_frequency_range = stripe_frequency_range
         self.amplitude_range = amplitude_range
