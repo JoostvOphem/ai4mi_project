@@ -1,18 +1,34 @@
-import matplotlib.pyplot as plt
+import os
 import nibabel as nib
-import numpy as np
+from pathlib import Path
 
-# orginal
-original = nib.load("data/segthor_train/train/Patient_03/Patient_03.nii.gz")
-original = np.asarray(original.dataobj)
-x = original.shape[0]
-plt.imshow(original[int(x / 2), :, :], cmap='gray')
-plt.savefig("original.png")
+def print_nifti_info(file_path):
+    nii_img = nib.load(file_path)
+    header = nii_img.header
+    
+    print(f"File: {file_path}")
+    print(f"  Shape: {nii_img.shape}")
+    print(f"  Data type: {nii_img.get_data_dtype()}")
+    print(f"  Voxel dimensions: {header.get_zooms()[:3]}")
+    print(f"  Unit: {header.get_xyzt_units()[0]}")
+    print("  Value range:", nii_img.get_fdata().min(), "to", nii_img.get_fdata().max())
+    print()
 
+def process_directory(base_path):
+    base_path = Path(base_path)
+    
+    # Process CT images
+    ct_dir = base_path / "train" / "img"
+    print("CT Images:")
+    for file in sorted(ct_dir.glob("*.nii.gz")):
+        print_nifti_info(file)
+    
+    # Process Ground Truth images
+    gt_dir = base_path / "train" / "gt"
+    print("Ground Truth Images:")
+    for file in sorted(gt_dir.glob("*.nii.gz")):
+        print_nifti_info(file)
 
-# UNETR data
-unetr = nib.load("data/SEGTHOR_3D/train/img/Patient_03.nii.gz")
-unetr = np.asarray(unetr.dataobj)
-x = unetr.shape[0]
-plt.imshow(unetr[int(x / 2), :, :], cmap='gray')
-plt.savefig("unetr.png")
+if __name__ == "__main__":
+    data_path = "data/SEGTHOR_3D"
+    process_directory(data_path)
