@@ -45,7 +45,7 @@ def run(args: argparse.Namespace) -> None:
 
     epcs = np.arange(E)
 
-    for k in range(1, K):
+    for k in range(0, K):
         y = metrics[:, :, k].mean(axis=1)
         ax.plot(epcs, y, label=f"{k=}", linewidth=1.5)
 
