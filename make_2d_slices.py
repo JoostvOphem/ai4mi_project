@@ -10,7 +10,7 @@ def create_2d_slices(input_path, output_path, file_prefix, data_type):
     img_data = img.get_fdata()
     num_slices = img_data.shape[2]
 
-    img_data *= 63 if data_type == 'gt' else np.clip(img_data * 255, 0, 255)
+    img_data *= 63 if data_type == 'gt' else img_data* 255
 
     for i in range(num_slices):
         slice_2d = img_data[:, :, i]
@@ -30,7 +30,7 @@ def process_dataset(input_root, output_root):
 
             # Process each file in the input directory
             for filename in tqdm.tqdm(os.listdir(input_path)):
-                if filename.endswith('.nii.gz') or filename.endswith('.nii'):
+                if filename.endswith('.nii.gz'):
                     patient_id = filename.split('.')[0]
                     input_file = os.path.join(input_path, filename)
                     create_2d_slices(input_file, output_path, patient_id, data_type)

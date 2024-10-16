@@ -5,7 +5,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=18
 #SBATCH --time=00:59:00
-#SBATCH --output=main_run_%A.out
+#SBATCH --output=enet_masd_%A.out
 
 # Define the MODEL variable
 MODEL="enet"  # Change this to "enet", "unet" or "unetr" as needed
@@ -17,11 +17,11 @@ module load Python/3.10.4-GCCcore-11.3.0
 
 # Use the MODEL variable to determine which command to run
 if [ "$MODEL" = "enet" ]; then
-    python -O main.py --model "$MODEL" --dataset SEGTHOR --mode full --epoch 50 --dest results/segthor_enet/ce --gpu --metric dice
+    python -O main.py --model "$MODEL" --dataset SEGTHOR --mode full --epoch 50 --dest results/segthor_enet/ce --gpu --metric masd
 elif [ "$MODEL" = "unet" ]; then
-    python -O main.py --dataset SEGTHOR --mode full --epoch 50 --dest results/segthor_unet/ce --gpu --metric dice
+    python -O main.py --model "$MODEL" --dataset SEGTHOR --mode full --epoch 50 --dest results/segthor_unet/ce --gpu --metric dice
 elif [ "$MODEL" = "unetr" ]; then
-    python -O main.py --dataset SEGTHOR_3D --mode full --epoch 50 --dest results/segthor_unetr/ce --gpu --metric dice
+    python -O main.py --model "$MODEL" --dataset SEGTHOR_3D --mode full --epoch 50 --dest results/segthor_unetr/ce --gpu --metric dice
 else
     echo "Invalid MODEL value. Please use 'enet', 'unet', or 'unetr'."
     exit 1
