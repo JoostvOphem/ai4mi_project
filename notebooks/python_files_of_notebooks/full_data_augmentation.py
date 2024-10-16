@@ -39,15 +39,15 @@ medium_MED_transforms = [gamma_transform(ranges=(0.5,2)), gaussian_blur_transfor
 major_MED_transforms = [gaussian_noise_transform(0, 0.1), lowres_transform(zoom_range=(0.7,1)), brightness_transform(0, 1000)]
 MED_transforms = (minor_MED_transforms, medium_MED_transforms, major_MED_transforms)
 
-minor_AI_transforms = [sharpening_transform(strength=(0.1, 0.3)), rot_90_transform(num_rot=(1,2,3)), transpose_axes_transform(transpose_any_of_these=(0,1,2))]
-medium_AI_transforms = [gamma_transform(ranges=(0.5,2)), gaussian_blur_transform(blur_sigma=(0.3, 1.5)), mirror_transform(), spatial_transform(patch_size=(128,128,128))]
-major_AI_transforms = [gaussian_noise_transform(0, 0.1), lowres_transform(zoom_range=(0.7,1)), brightness_transform(0, 1000), contrast_transform(range=(0.5,2))]
-AI_transforms = (minor_AI_transforms, medium_AI_transforms, major_AI_transforms)
+# minor_AI_transforms = [sharpening_transform(strength=(0.1, 0.3)), rot_90_transform(num_rot=(1,2,3)), transpose_axes_transform(transpose_any_of_these=(0,1,2))]
+# medium_AI_transforms = [gamma_transform(ranges=(0.5,2)), gaussian_blur_transform(blur_sigma=(0.3, 1.5)), mirror_transform(), spatial_transform(patch_size=(128,128,128))]
+# major_AI_transforms = [gaussian_noise_transform(0, 0.1), lowres_transform(zoom_range=(0.7,1)), brightness_transform(0, 1000), contrast_transform(range=(0.5,2))]
+# AI_transforms = (minor_AI_transforms, medium_AI_transforms, major_AI_transforms)
 
-minor_ALL_transforms = [PartialVolumeArtifactTransform, StreakArtifactTransform, RingArtifactTransform, ZebraArtifactTransform, sharpening_transform(strength=(0.1, 0.3)), rot_90_transform(num_rot=(1,2,3)), transpose_axes_transform(transpose_any_of_these=(0,1,2))]
-medium_ALL_transforms = [gamma_transform(ranges=(0.5,2)), gaussian_blur_transform(blur_sigma=(0.3, 1.5)), sharpening_transform(strength=(0.1, 0.3))]
-major_ALL_transforms = [gaussian_noise_transform(0, 0.1), lowres_transform(zoom_range=(0.7,1)), brightness_transform(0, 1000)]
-ALL_transforms = (minor_ALL_transforms, medium_ALL_transforms, major_ALL_transforms)
+# minor_ALL_transforms = [PartialVolumeArtifactTransform, StreakArtifactTransform, RingArtifactTransform, ZebraArtifactTransform, sharpening_transform(strength=(0.1, 0.3)), rot_90_transform(num_rot=(1,2,3)), transpose_axes_transform(transpose_any_of_these=(0,1,2))]
+# medium_ALL_transforms = [gamma_transform(ranges=(0.5,2)), gaussian_blur_transform(blur_sigma=(0.3, 1.5)), sharpening_transform(strength=(0.1, 0.3))]
+# major_ALL_transforms = [gaussian_noise_transform(0, 0.1), lowres_transform(zoom_range=(0.7,1)), brightness_transform(0, 1000)]
+# ALL_transforms = (minor_ALL_transforms, medium_ALL_transforms, major_ALL_transforms)
 
 
 gt_transforms = [type(rot_90_transform(num_rot=(1,2,3))), type(transpose_axes_transform(transpose_any_of_these=(0,1,2)))]
@@ -61,7 +61,7 @@ real_1 = nib.load(input_file_path)
 image_data = real_1.get_fdata()
 image_data = image_data[np.newaxis, np.newaxis, ...]
 slice_number = 50
-patch_size = (128, 128, 128)
+# patch_size = (128, 128, 128)
 
 
 # In[4]:
@@ -178,7 +178,7 @@ def save_array_as_nii(array, filename, niifile):
     """
     # Convert NumPy array to a NIfTI image
 
-    array = array.reshape(128,128,128)
+    # array = array.reshape(128,128,128)
     
     nii_image = nib.Nifti1Image(array, affine=niifile.affine, header=niifile.header)
     
@@ -258,27 +258,27 @@ for file in os.listdir(Path("data") / "SEGTHOR_3D" / "train" / "gt"):
     gt_data = gt_data[np.newaxis, np.newaxis, ...]
 
     MED_results = apply_transformations(gt_data, image_data, MED_transforms, gt_transforms)
-    AI_results = apply_transformations(gt_data, image_data, AI_transforms, gt_transforms)
-    ALL_results = apply_transformations(gt_data, image_data, MED_transforms, gt_transforms)
+    # AI_results = apply_transformations(gt_data, image_data, AI_transforms, gt_transforms)
+    # ALL_results = apply_transformations(gt_data, image_data, MED_transforms, gt_transforms)
     
     patnum = 0
     gtnum = 0
-    for i, (MED_result, AI_result, ALL_result) in enumerate(zip(MED_results, AI_results, ALL_results)):
-    # for i, AI_result in enumerate(AI_results):
+    # for i, (MED_result, AI_result, ALL_result) in enumerate(zip(MED_results, AI_results, ALL_results)):
+    for i, MED_result in enumerate(MED_results):
         if i % 2 == 1:
             # patients
             patnum += 1
             patnum_in_amt = "{:04d}".format(patnum)
             save_array_as_nii(MED_result, new_patient_file_path_med / f"Patient_{patient_number}_{patnum_in_amt}", patient_nii)
-            save_array_as_nii(AI_result, new_patient_file_path_ai / f"Patient_{patient_number}_{patnum_in_amt}", patient_nii)
-            save_array_as_nii(ALL_result, new_patient_file_path_all / f"Patient_{patient_number}_{patnum_in_amt}", patient_nii)
+            # save_array_as_nii(AI_result, new_patient_file_path_ai / f"Patient_{patient_number}_{patnum_in_amt}", patient_nii)
+            # save_array_as_nii(ALL_result, new_patient_file_path_all / f"Patient_{patient_number}_{patnum_in_amt}", patient_nii)
         else:
             # GT
             gtnum += 1
             gtnum_in_amt = "{:04d}".format(gtnum)
             save_array_as_nii(MED_result, new_gt_file_path_med / f"Patient_{patient_number}_{gtnum_in_amt}", gt_nii)
-            save_array_as_nii(AI_result, new_gt_file_path_ai / f"Patient_{patient_number}_{gtnum_in_amt}", gt_nii)
-            save_array_as_nii(ALL_result, new_gt_file_path_all / f"Patient_{patient_number}_{gtnum_in_amt}", gt_nii)
+            # save_array_as_nii(AI_result, new_gt_file_path_ai / f"Patient_{patient_number}_{gtnum_in_amt}", gt_nii)
+            # save_array_as_nii(ALL_result, new_gt_file_path_all / f"Patient_{patient_number}_{gtnum_in_amt}", gt_nii)
 
 
 # # fill the validation
@@ -314,18 +314,18 @@ for file in os.listdir(Path("data") / "SEGTHOR_3D" / "val" / "gt"):
     patnum = 0
     gtnum = 0
     # for i, (MED_result, AI_result, ALL_result) in enumerate(zip(MED_results, AI_results, ALL_results)):
-    for i, AI_result in enumerate(AI_results):
+    for i, MED_result in enumerate(MED_results):
         if i % 2 == 1:
             # patients
             patnum += 1
             patnum_in_amt = "{:04d}".format(patnum)
-            # save_array_as_nii(MED_result, new_patient_file_path_med / f"Patient_{patient_number}_{patnum_in_amt}", patient_nii)
-            save_array_as_nii(AI_result, new_patient_file_path_ai / f"Patient_{patient_number}_{patnum_in_amt}", patient_nii)
+            save_array_as_nii(MED_result, new_patient_file_path_med / f"Patient_{patient_number}_{patnum_in_amt}", patient_nii)
+            # save_array_as_nii(AI_result, new_patient_file_path_ai / f"Patient_{patient_number}_{patnum_in_amt}", patient_nii)
             # save_array_as_nii(ALL_result, new_patient_file_path_all / f"Patient_{patient_number}_{patnum_in_amt}", patient_nii)
         else:
             # GT
             gtnum += 1
             gtnum_in_amt = "{:04d}".format(gtnum)
-            # save_array_as_nii(MED_result, new_gt_file_path_med / f"Patient_{patient_number}_{patnum_in_amt}", gt_nii)
-            save_array_as_nii(AI_result, new_gt_file_path_ai / f"Patient_{patient_number}_{patnum_in_amt}", gt_nii)
+            save_array_as_nii(MED_result, new_gt_file_path_med / f"Patient_{patient_number}_{gtnum_in_amt}", gt_nii)
+            # save_array_as_nii(AI_result, new_gt_file_path_ai / f"Patient_{patient_number}_{patnum_in_amt}", gt_nii)
             # save_array_as_nii(ALL_result, new_gt_file_path_all / f"Patient_{patient_number}_{patnum_in_amt}", gt_nii)
