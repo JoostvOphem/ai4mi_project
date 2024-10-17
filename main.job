@@ -5,10 +5,10 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=18
 #SBATCH --time=00:59:00
-#SBATCH --output=unetr_combine_loss_%A.out
+#SBATCH --output=enet_on_med%A.out
 
 # Define the MODEL variable
-MODEL="unetr"  # Change this to "enet", "unet" or "unetr" as needed
+MODEL="unet"  # Change this to "enet", "unet" or "unetr" as needed
 
 # activate the environment
 source ai4mi/bin/activate

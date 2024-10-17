@@ -38,10 +38,8 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 
 from dataset import SliceDataset, VolumeDataset
-from ShallowNet import shallowCNN
 from ENet import ENet
-from Models import UNet, UNETR_monai
-from UNETR import UNETR
+from Models import UNet, UNETR_monai, shallowCNN
 from utils import (Dcm,
                    class2one_hot,
                    probs2one_hot,
@@ -64,7 +62,7 @@ from losses import (CrossEntropy,
 datasets_params: dict[str, dict[str, Any]] = {}
 # K for the number of classes
 # Avoids the clases with C (often used for the number of Channel)
-models = {'enet':ENet, 'unet':UNet, 'unetr':UNETR, 'shallowcnn':shallowCNN}
+models = {'enet':ENet, 'unet':UNet, 'unetr':UNETR_monai, 'shallowcnn':shallowCNN}
 datasets_params["TOY2"] = {'K': 2, 'net': shallowCNN, 'B': 2}
 datasets_params["SEGTHOR"] = {'K': 5, 'net': ENet, 'B': 8}
 datasets_params["SEGTHOR_MED"] = {'K': 5, 'net': UNet, 'B': 8}
@@ -279,7 +277,7 @@ def runTraining(args):
                                                     "Loss": f"{log_loss[e, :i + 1].mean():5.2e}"}
                     if K > 2:
                         postfix_dict |= {f"Dice-{k}": f"{log_dice[e, :j, k].mean():05.3f}"
-                                         for k in range(1, K)}
+                                         for k in range(0, K)}
                     tq_iter.set_postfix(postfix_dict)
 
         # I save it at each epochs, in case the code crashes or I decide to stop it early

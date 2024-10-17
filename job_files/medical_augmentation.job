@@ -1,0 +1,32 @@
+#!/bin/bash
+#SBATCH --partition=gpu
+#SBATCH --gpus-per-node=1
+#SBATCH --job-name=med_fast
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=18
+#SBATCH --time=20:00:00
+#SBATCH --output=med_fast_unet_%A.out
+
+# Define the MODEL variable
+MODEL="unet"  # Change this to "enet", "unet" or "unetr" as needed
+
+# activate the environment
+source ai4mi/bin/activate
+module load 2022
+module load Python/3.10.4-GCCcore-11.3.0
+
+# Use the MODEL variable to determine which command to run
+if [ "$MODEL" = "enet" ]; then
+    python -O main.py --model "$MODEL" --dataset SEGTHOR_MED --mode full --epoch 100 --dest results/med_augmentation_${MODEL}/ce --gpu --metric dice
+elif [ "$MODEL" = "unet" ]; then
+    python -O main.py --model "$MODEL" --dataset SEGTHOR_MED --mode full --epoch 100 --dest results/med_augmentation_${MODEL}/ce --gpu --metric dice
+elif [ "$MODEL" = "unetr" ]; then
+    python -O main.py --model "$MODEL" --dataset SEGTHOR_3D_MED --mode full --epoch 100 --dest results/med_augmentation_${MODEL}/ce --gpu --metric dice
+else
+    echo "Invalid MODEL value. Please use 'enet', 'unet', or 'unetr'."
+    exit 1
+fi
+
+# Plot, change the arguments to plot loss curve or dice score
+python plot.py --metric_file results/med_augmentation_${MODEL}/ce/loss_tra.npy --dest results/med_augmentation_${MODEL}/ce/loss_tra.png
+python plot.py --metric_file results/med_augmentation_${MODEL}/ce/dice_val.npy --dest results/med_augmentation_${MODEL}/ce/dice_val.png
