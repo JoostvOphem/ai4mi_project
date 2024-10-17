@@ -66,10 +66,10 @@ datasets_params: dict[str, dict[str, Any]] = {}
 # Avoids the clases with C (often used for the number of Channel)
 models = {'enet':ENet, 'unet':UNet, 'unetr':UNETR, 'shallowcnn':shallowCNN}
 datasets_params["TOY2"] = {'K': 2, 'net': shallowCNN, 'B': 2}
-datasets_params["SEGTHOR"] = {'K': 5, 'net': ENet, 'B': 8}  # Change net to ENet or UNet
-datasets_params["SEGTHOR_MED"] = {'K': 5, 'net': ENet, 'B': 8}
+datasets_params["SEGTHOR"] = {'K': 5, 'net': ENet, 'B': 8}
+datasets_params["SEGTHOR_MED"] = {'K': 5, 'net': UNet, 'B': 8}
 datasets_params["SEGTHOR_AI"] = {'K': 5, 'net': ENet, 'B': 8} 
-datasets_params["SEGTHOR_ALL"] = {'K': 5, 'net': ENet, 'B': 8} 
+datasets_params["SEGTHOR_ALL"] = {'K': 5, 'net': UNet, 'B': 8} 
 datasets_params["SEGTHOR_3D"] = {'K': 5, 'net': UNETR_monai, 'B': 4, 'img_shape': (128, 128, 64), 'input_dim': 1}
 
 
@@ -330,6 +330,7 @@ def main():
                         help="Min difference in validation loss to consider non-improving.")
 
     args = parser.parse_args()
+    datasets_params['net'] = models[args.model]
 
     pprint(args)
 

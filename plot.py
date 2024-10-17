@@ -35,8 +35,10 @@ def run(args: argparse.Namespace) -> None:
         case 2:
             E, N = metrics.shape
             K = 1
+            iter = range(0, 1)
         case 3:
             E, N, K = metrics.shape
+            iter = range(1, K)
 
     fig = plt.figure()
     ax = fig.gca()
@@ -45,7 +47,7 @@ def run(args: argparse.Namespace) -> None:
 
     epcs = np.arange(E)
 
-    for k in range(0, K):
+    for k in iter:
         y = metrics[:, :, k].mean(axis=1)
         ax.plot(epcs, y, label=f"{k=}", linewidth=1.5)
 
