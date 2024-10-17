@@ -10,14 +10,20 @@ $ cd ai4mi_project
 $ python -m venv ai4mi
 $ source ai4mi/bin/activate
 $ python -m pip install -r requirements.txt
+$ python -V # Make sure that your Python version is >=3.11
 ```
 
 ### Getting the data
 Generation the data, via the recipe in the `Makefile`:
 ```
-$ make data/TOY2
+# This creates 2D slices of SEGTHOR dataset in the shape [256, 256]
 $ make data/SEGTHOR
+
+# Make a 3D folder in the original shape ([512, 512, z]) for preprocessing purpose
+$ python prepare_3d_segthor.py --source_dir data/segthor_train --dest_dir data/SEGTHOR_3D --retains 10
 ```
+
+The synthetic dataset is generated randomly, whereas for Segthor it is required to put the file [`segthor_train.zip`](https://amsuni-my.sharepoint.com/:u:/g/personal/h_t_g_kervadec_uva_nl/EfMdFte7pExAnPwt4tYUcxcBbJJO8dqxJP9r-5pm9M_ARw?e=ZNdjee) (required a UvA account) in the `data/` folder. If the computer running it is powerful enough, the recipe for `data/SEGTHOR` can be modified in the [Makefile](Makefile) to enable multi-processing (`-p -1` option, see `python slice_segthor.py --help` or its code directly).
 
 ## Running on Snellius
 After creating the environment you need to run the following lines to run the main.py
@@ -39,7 +45,6 @@ $ python -O main.py --model enet --dataset SEGTHOR --mode full --epoch 50 --dest
 The project is based around the SegTHOR challenge data, which was kindly allowed by Caroline Petitjean (challenge organizer) to use for the course. The challenge was originally on the segmentation of different organs: heart, aorta, esophagus and trachea.
 ![Segthor Overview](segthor_overview.png)
 
-The synthetic dataset is generated randomly, whereas for Segthor it is required to put the file [`segthor_train.zip`](https://amsuni-my.sharepoint.com/:u:/g/personal/h_t_g_kervadec_uva_nl/EfMdFte7pExAnPwt4tYUcxcBbJJO8dqxJP9r-5pm9M_ARw?e=ZNdjee) (required a UvA account) in the `data/` folder. If the computer running it is powerful enough, the recipe for `data/SEGTHOR` can be modified in the [Makefile](Makefile) to enable multi-processing (`-p -1` option, see `python slice_segthor.py --help` or its code directly).
 
 ### How to replicate our results
 To replicate our results you must run the following command lines given that you already have the SEGTHOR datatset and the correct environment.

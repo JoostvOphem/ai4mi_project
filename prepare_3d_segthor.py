@@ -130,7 +130,7 @@ def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='3D data preparation parameters')
     parser.add_argument('--source_dir', type=str, required=True)
     parser.add_argument('--dest_dir', type=str, required=True)
-    parser.add_argument('--retains', type=int, default=25, help="Number of retained patient for the validation data")
+    parser.add_argument('--retains', type=int, default=10, help="Number of retained patient for the validation data")
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--fold', type=int, default=0)
     parser.add_argument('--process', '-p', type=int, default=1, help="The number of cores to use for processing")
