@@ -2,6 +2,23 @@
 
 Alessandro, Erik, Joost, Rory & Taiki
 
+## Setting up the environment
+Run the following commands to create a needed environment:
+```
+$ git clone https://github.com/JoostvOphem/ai4mi_project.git 
+$ cd ai4mi_project
+$ python -m venv ai4mi
+$ source ai4mi/bin/activate
+$ python -m pip install -r requirements.txt
+```
+
+### Getting the data
+Generation the data, via the recipe in the `Makefile`:
+```
+$ make data/TOY2
+$ make data/SEGTHOR
+```
+
 ## Running on Snellius
 After creating the environment you need to run the following lines to run the main.py
 
@@ -21,13 +38,6 @@ $ python -O main.py --model enet --dataset SEGTHOR --mode full --epoch 50 --dest
 ## Project overview
 The project is based around the SegTHOR challenge data, which was kindly allowed by Caroline Petitjean (challenge organizer) to use for the course. The challenge was originally on the segmentation of different organs: heart, aorta, esophagus and trachea.
 ![Segthor Overview](segthor_overview.png)
-
-### Getting the data
-Generation the data, via the recipe in the `Makefile`:
-```
-$ make data/TOY2
-$ make data/SEGTHOR
-```
 
 The synthetic dataset is generated randomly, whereas for Segthor it is required to put the file [`segthor_train.zip`](https://amsuni-my.sharepoint.com/:u:/g/personal/h_t_g_kervadec_uva_nl/EfMdFte7pExAnPwt4tYUcxcBbJJO8dqxJP9r-5pm9M_ARw?e=ZNdjee) (required a UvA account) in the `data/` folder. If the computer running it is powerful enough, the recipe for `data/SEGTHOR` can be modified in the [Makefile](Makefile) to enable multi-processing (`-p -1` option, see `python slice_segthor.py --help` or its code directly).
 
