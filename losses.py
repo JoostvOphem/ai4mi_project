@@ -22,7 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
+import torch
 from torch import einsum, Tensor
 
 from utils import simplex, sset
@@ -73,6 +73,33 @@ class DiceLoss:
         loss = 1 - dice.mean()
 
         return loss
+    
+class FocalLoss:
+    def __init__(self, **kwargs):
+        self.idk = kwargs['idk']
+        self.gamma = kwargs.get('gamma', 2.0)
+        self.alpha = kwargs.get('alpha', 0.25)
+        self.smooth = 1e-6
+        print(f"Initialized {self.__class__.__name__} with {kwargs}")
+
+    def __call__(self, pred_softmax: Tensor, weak_target: Tensor) -> Tensor:
+        assert pred_softmax.shape == weak_target.shape
+        assert simplex(pred_softmax)
+        assert sset(weak_target, [0, 1])
+
+        pred = pred_softmax[:, self.idk, ...]
+        target = weak_target[:, self.idk, ...].float()
+
+        # Compute focal loss
+        pt = pred * target + (1 - pred) * (1 - target)
+        focal_weight = (1 - pt) ** self.gamma
+
+        alpha_t = self.alpha * target + (1 - self.alpha) * (1 - target)
+        loss = -alpha_t * focal_weight * torch.log(pt + self.smooth)
+
+        # Average over non-ignored pixels
+        num_non_zero = torch.sum(target > 0) + self.smooth
+        return torch.sum(loss) / num_non_zero
     
 class CombinedLoss:
     def __init__(self, **kwargs):
