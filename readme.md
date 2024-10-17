@@ -25,6 +25,20 @@ $ python prepare_3d_segthor.py --source_dir data/segthor_train --dest_dir data/S
 
 The synthetic dataset is generated randomly, whereas for Segthor it is required to put the file [`segthor_train.zip`](https://amsuni-my.sharepoint.com/:u:/g/personal/h_t_g_kervadec_uva_nl/EfMdFte7pExAnPwt4tYUcxcBbJJO8dqxJP9r-5pm9M_ARw?e=ZNdjee) (required a UvA account) in the `data/` folder. If the computer running it is powerful enough, the recipe for `data/SEGTHOR` can be modified in the [Makefile](Makefile) to enable multi-processing (`-p -1` option, see `python slice_segthor.py --help` or its code directly).
 
+### Preprocessing
+Run the following commands to make our preprocessed data folders: SEGTHOR_3D_MED, SEGTHOR_3D_AI, SEGTHOR_3D_ALL, SEGTHOR_MED, SEGTHOR_AI, SEGTHOR_ALL
+```
+$ python apply_augmentations.py --mode MED
+$ python apply_augmentations.py --mode AI
+$ python apply_augmentations.py --mode ALL
+$ python make_2d_slices.py --src data/SEGTHOR_3D_MED --dest data/SEGTHOR_MED
+$ python make_2d_slices.py --src data/SEGTHOR_3D_AI --dest data/SEGTHOR_AI
+$ python make_2d_slices.py --src data/SEGTHOR_3D_ALL --dest data/SEGTHOR_ALL
+
+# Or simply run this job file
+$ sbatch job_files/create_preprocessed_data.job
+```
+
 ## Running on Snellius
 After creating the environment you need to run the following lines to run the main.py
 

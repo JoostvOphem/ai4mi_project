@@ -4,18 +4,39 @@ import nibabel as nib
 import numpy as np
 from PIL import Image
 import tqdm
+from skimage.transform import resize
+
+def norm_arr(img: np.ndarray) -> np.ndarray:
+    casted = img.astype(np.float32)
+    shifted = casted - casted.min()
+    norm = shifted / shifted.max()
+    res = 255 * norm
+    assert 0 == res.min(), res.min()
+    assert res.max() == 255, res.max()
+    return res.astype(np.uint8)
 
 def create_2d_slices(input_path, output_path, file_prefix, data_type):
     img = nib.load(input_path)
     img_data = img.get_fdata()
     num_slices = img_data.shape[2]
-
-    img_data *= 63 if data_type == 'gt' else img_data* 255
-
+    
     for i in range(num_slices):
         slice_2d = img_data[:, :, i]
-        img_slice = Image.fromarray(slice_2d.astype(np.uint8), mode='L')  # 'L' mode for 8-bit grayscale
-
+        
+        # Resize to 256x256
+        resized_slice = resize(slice_2d, (256, 256), order=1, preserve_range=True)
+        
+        # Normalize the image
+        if data_type == 'gt':
+            # For ground truth, we assume it's already binary (0 and 1)
+            normalized_slice = (resized_slice * 255).astype(np.uint8)
+        else:
+            # For regular images, use the provided normalization function
+            normalized_slice = norm_arr(resized_slice)
+        
+        # Convert to PIL Image
+        img_slice = Image.fromarray(normalized_slice, mode='L')  # 'L' mode for 8-bit grayscale
+        
         # Save the image
         img_slice.save(os.path.join(output_path, f"{file_prefix}_{i:04d}.png"))
 
@@ -24,12 +45,10 @@ def process_dataset(input_root, output_root):
         for data_type in ['img', 'gt']:
             input_path = os.path.join(input_root, subset, data_type)
             output_path = os.path.join(output_root, subset, data_type)
-
             # Create output directory if it doesn't exist
             os.makedirs(output_path, exist_ok=True)
-
             # Process each file in the input directory
-            for filename in tqdm.tqdm(os.listdir(input_path)):
+            for filename in tqdm.tqdm(os.listdir(input_path), desc=f"Processing {subset} {data_type}"):
                 if filename.endswith('.nii.gz') or filename.endswith('.nii'):
                     patient_id = filename.split('.')[0]
                     input_file = os.path.join(input_path, filename)

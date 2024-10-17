@@ -1,0 +1,22 @@
+#!/bin/bash
+#SBATCH --partition=gpu
+#SBATCH --gpus-per-node=1
+#SBATCH --job-name=aug_create
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=18
+#SBATCH --time=02:00:00
+#SBATCH --output=create_aug_data_%A.out
+
+
+# activate the environment
+source ai4mi/bin/activate
+module load 2022
+module load Python/3.10.4-GCCcore-11.3.0
+
+python apply_augmentations.py --mode MED
+python apply_augmentations.py --mode AI
+python apply_augmentations.py --mode ALL
+
+python make_2d_slices.py --src data/SEGTHOR_3D_MED --dest data/SEGTHOR_MED
+python make_2d_slices.py --src data/SEGTHOR_3D_AI --dest data/SEGTHOR_AI
+python make_2d_slices.py --src data/SEGTHOR_3D_ALL --dest data/SEGTHOR_ALL
