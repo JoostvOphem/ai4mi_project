@@ -18,24 +18,25 @@ def norm_arr(img: np.ndarray) -> np.ndarray:
 def create_2d_slices(input_path, output_path, file_prefix, data_type):
     img = nib.load(input_path)
     img_data = img.get_fdata()
-    num_slices = img_data.shape[2]
+    
+    # Normalize the entire 3D image
+    if data_type == 'gt':
+        # For ground truth, we assume it's already binary (0 and 1)
+        normalized_data = (img_data * 255).astype(np.uint8)
+    else:
+        # For regular images, use the provided normalization function
+        normalized_data = norm_arr(img_data)
+    
+    num_slices = normalized_data.shape[2]
     
     for i in range(num_slices):
-        slice_2d = img_data[:, :, i]
+        slice_2d = normalized_data[:, :, i]
         
         # Resize to 256x256
-        resized_slice = resize(slice_2d, (256, 256), order=1, preserve_range=True)
-        
-        # Normalize the image
-        if data_type == 'gt':
-            # For ground truth, we assume it's already binary (0 and 1)
-            normalized_slice = (resized_slice * 255).astype(np.uint8)
-        else:
-            # For regular images, use the provided normalization function
-            normalized_slice = norm_arr(resized_slice)
+        resized_slice = resize(slice_2d, (256, 256), order=1, preserve_range=True).astype(np.uint8)
         
         # Convert to PIL Image
-        img_slice = Image.fromarray(normalized_slice, mode='L')  # 'L' mode for 8-bit grayscale
+        img_slice = Image.fromarray(resized_slice, mode='L')  # 'L' mode for 8-bit grayscale
         
         # Save the image
         img_slice.save(os.path.join(output_path, f"{file_prefix}_{i:04d}.png"))
