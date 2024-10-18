@@ -9,3 +9,5 @@ __pycache__/
 .DS_Store
 snellius outputs/
 *.out
+nnUNet/*
+nnUNet_stored/*

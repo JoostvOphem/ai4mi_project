@@ -56,7 +56,8 @@ from utils import (Dcm,
 
 from losses import (CrossEntropy,
                     DiceLoss,
-                    CombinedLoss)
+                    CombinedLoss,
+                    FocalLoss)
 
 
 datasets_params: dict[str, dict[str, Any]] = {}
@@ -70,6 +71,7 @@ datasets_params["SEGTHOR_AI"] = {'K': 5, 'net': ENet, 'B': 8}
 datasets_params["SEGTHOR_ALL"] = {'K': 5, 'net': UNet, 'B': 8} 
 datasets_params["SEGTHOR_3D"] = {'K': 5, 'net': UNETR_monai, 'B': 4, 'img_shape': (128, 128, 64), 'input_dim': 1}
 
+losses = {'ce':  CrossEntropy, 'dice': DiceLoss, 'focal': FocalLoss, 'combine':CombinedLoss}
 
 # edited from: https://stackoverflow.com/questions/71998978/early-stopping-in-pytorch
 class EarlyStopper:
@@ -112,7 +114,10 @@ def setup(args) -> tuple[nn.Module, Any, Any, DataLoader, DataLoader, int, str]:
     net.to(device)
 
     lr = 0.0005
-    optimizer = torch.optim.Adam(net.parameters(), lr=lr, betas=(0.9, 0.999))
+    if args.optim == 'adamW':
+        optimizer = torch.optim.AdamW(net.parameters(), lr=lr, betas=(0.9, 0.999), weight_decay=1e-2)
+    else:
+        optimizer = torch.optim.Adam(net.parameters(), lr=lr, betas=(0.9, 0.999))
 
     # Dataset part
     B: int = datasets_params[args.dataset]['B']
@@ -206,6 +211,7 @@ def runTraining(args):
     log_dice_val: Tensor = torch.zeros((args.epochs, len(val_loader.dataset), K))
 
     best_dice: float = 0
+    best_epoch: int = -1
 
     for e in range(args.epochs):
         for m in ['train', 'val']:
@@ -265,9 +271,11 @@ def runTraining(args):
                             warnings.filterwarnings('ignore', category=UserWarning)
                             predicted_class: Tensor = probs2class(pred_probs)
                             mult: int = 63 if K == 5 else (255 / (K - 1))
-                            save_images(predicted_class,  # Remove the multiplication here
+                            # Instead of saving images here, we'll store them temporarily
+                            temp_save_dir = args.dest / f"temp_iter{e:03d}" / m
+                            save_images(predicted_class,
                                         data['stems'],
-                                        args.dest / f"iter{e:03d}" / m,
+                                        temp_save_dir,
                                         is_3d=(args.dataset == "SEGTHOR_3D"))
                         early_stopper(loss.item())
 
@@ -290,20 +298,35 @@ def runTraining(args):
         if current_dice > best_dice:
             print(f">>> Improved Metric at epoch {e}: {best_dice:05.3f}->{current_dice:05.3f} DSC")
             best_dice = current_dice
-            with open(args.dest / "best_epoch.txt", 'w') as f:
-                    f.write(str(e))
+            best_epoch = e
 
+            # Save the best epoch information
+            with open(args.dest / "best_epoch.txt", 'w') as f:
+                f.write(str(e))
+
+            # Move the temporary saved images to the best_epoch folder
             best_folder = args.dest / "best_epoch"
             if best_folder.exists():
-                    rmtree(best_folder)
-            copytree(args.dest / f"iter{e:03d}", Path(best_folder))
+                rmtree(best_folder)
+            copytree(args.dest / f"temp_iter{e:03d}", best_folder)
 
+            # Save the model and weights
             torch.save(net, args.dest / "bestmodel.pkl")
             torch.save(net.state_dict(), args.dest / "bestweights.pt")
-        
+
+        # Remove the temporary saved images for this epoch
+        rmtree(args.dest / f"temp_iter{e:03d}")
+
         if early_stopper.early_stop:
             print(f">>> Stopping early at epoch {e}.")
             break
+
+    # After all epochs, ensure only the best epoch's images are kept
+    for e in range(args.epochs):
+        if e != best_epoch:
+            temp_dir = args.dest / f"temp_iter{e:03d}"
+            if temp_dir.exists():
+                rmtree(temp_dir)
 
 
 def main():
@@ -326,6 +349,8 @@ def main():
                         help="Amount of non-improving epochs after which to stop early.")
     parser.add_argument('--early_stopping_min_delta', type=float, default=10.0,
                         help="Min difference in validation loss to consider non-improving.")
+    parser.add_argument('--optim', type=str, default='adam', help='choose the optimizer')
+    parser.add_argument('--loss', type=str, default='ce', help='Choose the type of loss function.')
 
     args = parser.parse_args()
     datasets_params['net'] = models[args.model]

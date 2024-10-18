@@ -35,10 +35,10 @@ def run(args: argparse.Namespace) -> None:
         case 2:
             E, N = metrics.shape
             K = 1
-            iter = range(0, 1)
+            iter = range(1, K)
         case 3:
             E, N, K = metrics.shape
-            iter = range(1, K)
+            iter = range(0, K)
 
     fig = plt.figure()
     ax = fig.gca()

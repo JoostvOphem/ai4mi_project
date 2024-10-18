@@ -105,10 +105,29 @@ class CombinedLoss:
     def __init__(self, **kwargs):
         self.ce_loss = CrossEntropy(**kwargs)
         self.dice_loss = DiceLoss(**kwargs)
-        self.alpha = kwargs.get('alpha', 0.5)
+        self.alpha = kwargs.get('alpha', 0.5)  # Weight balance between CE and Dice
+        self.idk = kwargs['idk']  # Classes to consider
         print(f"Initialized {self.__class__.__name__} with {kwargs}")
 
-    def __call__(self, pred_softmax: Tensor, weak_target: Tensor) -> Tensor:
-        ce_loss = self.ce_loss(pred_softmax, weak_target)
-        dice_loss = self.dice_loss(pred_softmax, weak_target)
-        return self.alpha * ce_loss + (1 - self.alpha) * dice_loss
+    def __call__(self, pred_softmax: Tensor, target: Tensor) -> Tensor:
+        assert pred_softmax.shape == target.shape
+        assert simplex(pred_softmax)
+        assert sset(target, [0, 1])
+
+        ce_loss = self.ce_loss(pred_softmax, target)
+        dice_loss = self.dice_loss(pred_softmax, target)
+
+        combined_loss = self.alpha * ce_loss + (1 - self.alpha) * dice_loss
+
+        return combined_loss
+
+    def dice_coefficient(self, pred_softmax: Tensor, target: Tensor) -> Tensor:
+        # Calculate Dice coefficient for monitoring
+        pred = pred_softmax[:, self.idk, ...]
+        target = target[:, self.idk, ...].float()
+
+        intersection = (pred * target).sum(dim=(2, 3, 4) if pred.dim() == 5 else (2, 3))
+        union = pred.sum(dim=(2, 3, 4) if pred.dim() == 5 else (2, 3)) + target.sum(dim=(2, 3, 4) if pred.dim() == 5 else (2, 3))
+
+        dice = (2. * intersection + 1e-5) / (union + 1e-5)
+        return dice.mean()
