@@ -11,3 +11,4 @@ snellius outputs/
 *.out
 nnUNet/*
 nnUNet_stored/*
+/results_old
