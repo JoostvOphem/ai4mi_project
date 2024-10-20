@@ -77,10 +77,10 @@ def plot_dice():
     plt.ylabel('Average 3D Dice score')
     plt.title('Average Dice score after post-processing with opening and LCC')
 
-    plt.show()
+    # plt.show()
 
-    # plt.tight_layout()
-    # plt.savefig(test_root / "post_process_dice.png")
+    plt.tight_layout()
+    plt.savefig(test_root / "post_process_dice.png")
 
 
 if __name__ == "__main__":
