@@ -3,6 +3,7 @@ import re
 import numpy as np
 import glob
 from PIL import Image
+import torch
 
 _2d_pattern = re.compile(r"""Patient_(?P<patid>\d+)_(?P<layer>\d+)""", re.VERBOSE)
 
@@ -19,6 +20,12 @@ def parse_2d_filepath(path: Path):
     patid = int(match.group("patid"))
     layer = int(match.group("layer"))
     return {"patient_id":patid, "layer":layer}
+
+def to_onehot_tensor(array):
+    if not (np.unique(array) == np.array([0, 1, 2, 3, 4])).all():
+        array = array // 63
+    assert (np.unique(array) == np.array([0, 1, 2, 3, 4])).all()
+    return torch.unsqueeze(torch.nn.functional.one_hot(torch.from_numpy(array).to(torch.int64)).T, dim=0)
 
 class Results:
     def __init__(self, path: Path):
@@ -37,7 +44,7 @@ class Results:
     def best_epoch_val_3d(self):
         assert self._best_epoch_val_patients is not None
         for patid in sorted(list(self._best_epoch_val_patients)):
-            yield stack_2d_imgs(self._root / "best_epoch" / "val", patid), patid
+            yield to_onehot_tensor(stack_2d_imgs(self._root / "best_epoch" / "val", patid)), patid
 
 
 class GT:
@@ -53,7 +60,7 @@ class GT:
     
     def patient_volume(self, patient_id: int):
         assert patient_id in self._patients
-        return stack_2d_imgs(self._root, patient_id)
+        return to_onehot_tensor(stack_2d_imgs(self._root, patient_id))
     
     
 
