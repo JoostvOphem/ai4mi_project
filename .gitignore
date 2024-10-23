@@ -12,3 +12,5 @@ snellius outputs/
 nnUNet/*
 nnUNet_stored/*
 /results_old
+test_pp/*.nii
+test_pp/*.nii.gz
