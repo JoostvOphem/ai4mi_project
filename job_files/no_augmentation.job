@@ -17,16 +17,16 @@ module load Python/3.10.4-GCCcore-11.3.0
 
 # Use the MODEL variable to determine which command to run
 if [ "$MODEL" = "enet" ]; then
-    python -O main.py --model "$MODEL" --dataset SEGTHOR --mode full --epoch 100 --dest results/no_augmentation_${MODEL}/ce --gpu --metric dice
+    python -O main.py --model "$MODEL" --dataset SEGTHOR --mode full --epoch 100 --dest results/no_augmentation_${MODEL}/combine --gpu --metric dice --loss combine
 elif [ "$MODEL" = "unet" ]; then
-    python -O main.py --model "$MODEL" --dataset SEGTHOR --mode full --epoch 100 --dest results/no_augmentation_${MODEL}/ce --gpu --metric dice
+    python -O main.py --model "$MODEL" --dataset SEGTHOR --mode full --epoch 100 --dest results/no_augmentation_${MODEL}/combine --gpu --metric dice --loss combine
 elif [ "$MODEL" = "unetr" ]; then
-    python -O main.py --model "$MODEL" --dataset SEGTHOR_3D --mode full --epoch 100 --dest results/no_augmentation_${MODEL}/ce --gpu --metric dice
+    python -O main.py --model "$MODEL" --dataset SEGTHOR_3D --mode full --epoch 100 --dest results/no_augmentation_${MODEL}/ce --gpu --metric dice 
 else
     echo "Invalid MODEL value. Please use 'enet', 'unet', or 'unetr'."
     exit 1
 fi
 
 # Plot, change the arguments to plot loss curve or dice score
-python plot.py --metric_file results/no_augmentation_${MODEL}/ce/loss_tra.npy --dest results/no_augmentation_${MODEL}/ce/loss_tra.png
-python plot.py --metric_file results/no_augmentation_${MODEL}/ce/dice_val.npy --dest results/no_augmentation_${MODEL}/ce/dice_val.png
+python plot.py --metric_file results/no_augmentation_${MODEL}/combine/loss_tra.npy --dest results/no_augmentation_${MODEL}/combine/loss_tra.png
+python plot.py --metric_file results/no_augmentation_${MODEL}/combine/dice_val.npy --dest results/no_augmentation_${MODEL}/combine/dice_val.png

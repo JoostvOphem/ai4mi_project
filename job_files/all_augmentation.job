@@ -4,11 +4,11 @@
 #SBATCH --job-name=all_aug
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=18
-#SBATCH --time=20:00:00
-#SBATCH --output=all_aug_%A.out
+#SBATCH --time=5:00:00
+#SBATCH --output=enet_all_aug_%A.out
 
 # Define the MODEL variable
-MODEL="unet"  # Change this to "enet", "unet" or "unetr" as needed
+MODEL="enet"  # Change this to "enet", "unet" or "unetr" as needed
 
 # activate the environment
 source ai4mi/bin/activate

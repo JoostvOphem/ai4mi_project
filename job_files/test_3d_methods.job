@@ -1,0 +1,36 @@
+#!/bin/bash
+#SBATCH --partition=gpu
+#SBATCH --gpus-per-node=1
+#SBATCH --job-name=test_3d
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=18
+#SBATCH --time=05:00:00
+#SBATCH --output=test_3d_%A.out
+
+MODEL="unetr"  # Change this to "unetr" or "nnUNet as needed
+
+# activate the environment
+source ai4mi/bin/activate
+module load 2022
+module load Python/3.10.4-GCCcore-11.3.0
+
+print_time() {
+    local end_time=$(date +%s)
+    local elapsed=$((end_time - start_time))
+    echo "Elapsed time: $elapsed seconds"
+    echo "Current time: $(date)"
+}
+
+# Spline Interpolation
+start_time=$(date +%s)
+python -O main.py --model "$MODEL" --dataset SEGTHOR_3D --mode full --epoch 100 --dest results/segthor_${MODEL}/spline --gpu --metric dice --preprocess_method interpolation
+python plot.py --metric_file results/segthor_${MODEL}/spline/loss_tra.npy --dest results/segthor_${MODEL}/spline/loss_tra.png
+python plot.py --metric_file results/segthor_${MODEL}/spline/dice_val.npy --dest results/segthor_${MODEL}/spline/dice_val.png
+print_time
+
+# Sliding Windows
+start_time=$(date +%s)
+python -O main.py --model "$MODEL" --dataset SEGTHOR_3D --mode full --epoch 100 --dest results/segthor_${MODEL}/window --gpu --metric dice --preprocess_method sliding_window
+python plot.py --metric_file results/segthor_${MODEL}/window/loss_tra.npy --dest results/segthor_${MODEL}/window/loss_tra.png
+python plot.py --metric_file results/segthor_${MODEL}/window/dice_val.npy --dest results/segthor_${MODEL}/window/dice_val.png
+print_time

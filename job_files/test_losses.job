@@ -4,7 +4,7 @@
 #SBATCH --job-name=test_loss
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=18
-#SBATCH --time=03:00:00
+#SBATCH --time=01:30:00
 #SBATCH --output=test_loss_%A.out
 
 # Define the MODEL variable
@@ -15,24 +15,37 @@ source ai4mi/bin/activate
 module load 2022
 module load Python/3.10.4-GCCcore-11.3.0
 
+print_time() {
+    local end_time=$(date +%s)
+    local elapsed=$((end_time - start_time))
+    echo "Elapsed time: $elapsed seconds"
+    echo "Current time: $(date)"
+}
 
-# CrossEntropy -> check adam or adamW folder for results
-python -O main.py --model "$MODEL" --dataset SEGTHOR --mode full --epoch 100 --dest results/segthor_${MODEL}_adam/ce --gpu --metric dice --optim adam --loss ce
-python plot.py --metric_file results/segthor_${MODEL}_adam/ce/loss_tra.npy --dest results/segthor_${MODEL}_adam/ce/loss_tra.png
-python plot.py --metric_file results/segthor_${MODEL}_adam/ce/dice_val.npy --dest results/segthor_${MODEL}_adam/ce/dice_val.png
+
+# CrossEntropy -> check adamW folder for results
+# python -O main.py --model "$MODEL" --dataset SEGTHOR --mode full --epoch 100 --dest results/segthor_${MODEL}/ce --gpu --metric dice --loss ce
+# python plot.py --metric_file results/segthor_${MODEL}_adam/ce/loss_tra.npy --dest results/segthor_${MODEL}/ce/loss_tra.png
+# python plot.py --metric_file results/segthor_${MODEL}_adam/ce/dice_val.npy --dest results/segthor_${MODEL}/ce/dice_val.png
 
 
 # Dice loss
+start_time=$(date +%s)
 python -O main.py --model "$MODEL" --dataset SEGTHOR --mode full --epoch 100 --dest results/segthor_${MODEL}/dice --gpu --metric dice --optim adam --loss dice
 python plot.py --metric_file results/segthor_${MODEL}/dice/loss_tra.npy --dest results/segthor_${MODEL}/dice/loss_tra.png
 python plot.py --metric_file results/segthor_${MODEL}/dice/dice_val.npy --dest results/segthor_${MODEL}/dice/dice_val.png
+print_time
 
-# Focal loss
-python -O main.py --model "$MODEL" --dataset SEGTHOR --mode full --epoch 100 --dest results/segthor_${MODEL}/focal --gpu --metric dice --optim adam --loss focal
-python plot.py --metric_file results/segthor_${MODEL}/focal/loss_tra.npy --dest results/segthor_${MODEL}/focal/loss_tra.png
-python plot.py --metric_file results/segthor_${MODEL}/focal/dice_val.npy --dest results/segthor_${MODEL}/focal/dice_val.png
+# # Focal loss
+# start_time=$(date +%s)
+# python -O main.py --model "$MODEL" --dataset SEGTHOR --mode full --epoch 100 --dest results/segthor_${MODEL}/focal --gpu --metric dice --loss focal
+# python plot.py --metric_file results/segthor_${MODEL}/focal/loss_tra.npy --dest results/segthor_${MODEL}/focal/loss_tra.png
+# python plot.py --metric_file results/segthor_${MODEL}/focal/dice_val.npy --dest results/segthor_${MODEL}/focal/dice_val.png
+# print_time
 
-# Combined loss (ce + dice)
-python -O main.py --model "$MODEL" --dataset SEGTHOR --mode full --epoch 100 --dest results/segthor_${MODEL}/combine --gpu --metric dice --optim adam --loss combine
-python plot.py --metric_file results/segthor_${MODEL}/combine/loss_tra.npy --dest results/segthor_${MODEL}/combine/loss_tra.png
-python plot.py --metric_file results/segthor_${MODEL}/combine/dice_val.npy --dest results/segthor_${MODEL}/combine/dice_val.png
+# start_time=$(date +%s)
+# # Combined loss (ce + dice)
+# python -O main.py --model "$MODEL" --dataset SEGTHOR --mode full --epoch 100 --dest results/segthor_${MODEL}/combine --gpu --metric dice --loss combine
+# python plot.py --metric_file results/segthor_${MODEL}/combine/loss_tra.npy --dest results/segthor_${MODEL}/combine/loss_tra.png
+# python plot.py --metric_file results/segthor_${MODEL}/combine/dice_val.npy --dest results/segthor_${MODEL}/combine/dice_val.png
+# print_time

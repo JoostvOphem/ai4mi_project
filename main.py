@@ -153,15 +153,19 @@ def setup(args) -> tuple[nn.Module, Any, Any, DataLoader, DataLoader, int, str]:
     
     if args.dataset == "SEGTHOR_3D":
         train_set = VolumeDataset('train',
-                            root_dir,
-                            img_transform=img_transform,
-                            gt_transform=gt_transform,
-                            debug=args.debug)
+                                root_dir,
+                                img_transform=img_transform,
+                                gt_transform=gt_transform,
+                                debug=args.debug,
+                                preprocess_method=args.preprocess_method,
+                                target_shape=datasets_params[args.dataset]['img_shape'])
         val_set = VolumeDataset('val',
-                        root_dir,
-                        img_transform=img_transform,
-                        gt_transform=gt_transform,
-                        debug=args.debug)
+                                root_dir,
+                                img_transform=img_transform,
+                                gt_transform=gt_transform,
+                                debug=args.debug,
+                                preprocess_method=args.preprocess_method,
+                                target_shape=datasets_params[args.dataset]['img_shape'])
     else:
         train_set = SliceDataset('train',
                                 root_dir,
@@ -194,7 +198,7 @@ def runTraining(args):
     (net, optimizer, device, train_loader, val_loader, K, metric) = setup(args)
 
     if args.mode == "full" and args.model != "unetr":
-        loss_fn = CrossEntropy(idk=list(range(K)))  # Supervise both background and foreground
+        loss_fn = losses[args.loss](idk=list(range(K)))  # Supervise both background and foreground
     elif args.mode in ["partial"] and args.dataset in ['SEGTHOR', 'SEGTHOR_3D', 'SEGTHOR_STUDENTS']:
         loss_fn = CrossEntropy(idk=[0, 1, 3, 4])  # Do not supervise the heart (class 2)
     elif args.mode == "full" and args.model == "unetr":
@@ -202,7 +206,7 @@ def runTraining(args):
     else:
         raise ValueError(args.mode, args.dataset)
     
-    early_stopper = EarlyStopper(patience=args.early_stopping_patience, min_delta=args.early_stopping_min_delta)
+    # early_stopper = EarlyStopper(patience=args.early_stopping_patience, min_delta=args.early_stopping_min_delta)
 
     # Notice one has the length of the _loader_, and the other one of the _dataset_
     log_loss_tra: Tensor = torch.zeros((args.epochs, len(train_loader)))
@@ -277,7 +281,7 @@ def runTraining(args):
                                         data['stems'],
                                         temp_save_dir,
                                         is_3d=(args.dataset == "SEGTHOR_3D"))
-                        early_stopper(loss.item())
+                        # early_stopper(loss.item())
 
                     j += B  # Keep in mind that _in theory_, each batch might have a different size
                     # For the DSC average: do not take the background class (0) into account:
@@ -317,9 +321,9 @@ def runTraining(args):
         # Remove the temporary saved images for this epoch
         rmtree(args.dest / f"temp_iter{e:03d}")
 
-        if early_stopper.early_stop:
-            print(f">>> Stopping early at epoch {e}.")
-            break
+        # if early_stopper.early_stop:
+        #     print(f">>> Stopping early at epoch {e}.")
+        #     break
 
     # After all epochs, ensure only the best epoch's images are kept
     for e in range(args.epochs):
@@ -349,8 +353,11 @@ def main():
                         help="Amount of non-improving epochs after which to stop early.")
     parser.add_argument('--early_stopping_min_delta', type=float, default=10.0,
                         help="Min difference in validation loss to consider non-improving.")
-    parser.add_argument('--optim', type=str, default='adam', help='choose the optimizer')
+    parser.add_argument('--optim', type=str, default='adamW', help='choose the optimizer')
     parser.add_argument('--loss', type=str, default='ce', help='Choose the type of loss function.')
+    parser.add_argument('--preprocess_method', type=str, default='interpolation', 
+                    choices=['interpolation', 'sliding_window'],
+                    help='Preprocessing method for 3D volumes')
 
     args = parser.parse_args()
     datasets_params['net'] = models[args.model]

@@ -57,22 +57,28 @@ class UNet(nn.Module):
 
 
 class UNETR_monai(nn.Module):
-    def __init__(self, in_channels=1, out_channels=5, img_size=(128, 128, 64), feature_size=16, hidden_size=768, mlp_dim=3072, num_heads=12, pos_embed="conv", norm_name="instance", conv_block=True, res_block=True, dropout_rate=0.0):
+    def __init__(self, input_dim, output_dim):
         super().__init__()
         
+        # Parameters optimized for medical imaging:
+        # - feature_size: smaller than default since we have clear anatomical structures
+        # - hidden_size: reduced to prevent overfitting on medical data
+        # - num_heads: adjusted for the hidden_size
+        # - dropout_rate: increased slightly to prevent overfitting
+        
         self.unetr = UNETR(
-            in_channels=in_channels,
-            out_channels=out_channels,
-            img_size=img_size,
-            feature_size=feature_size,
-            hidden_size=hidden_size,
-            mlp_dim=mlp_dim,
-            num_heads=num_heads,
-            pos_embed=pos_embed,
-            norm_name=norm_name,
-            conv_block=conv_block,
-            res_block=res_block,
-            dropout_rate=dropout_rate
+            in_channels=input_dim,      # 1 for CT scans
+            out_channels=output_dim,    # 5 for your classes
+            img_size=(128, 128, 64),    # Your target shape
+            feature_size=32,            # Increased from 16 for better feature extraction
+            hidden_size=384,            # Reduced from 768 to prevent overfitting
+            mlp_dim=1536,              # 4x hidden_size
+            num_heads=6,               # Reduced from 12 to match hidden_size
+            pos_embed="conv",          # Better for medical images than learned
+            norm_name="instance",      # Good for varying intensity in medical images
+            conv_block=True,           
+            res_block=True,            # Helps with gradient flow
+            dropout_rate=0.1           # Slight regularization
         )
 
     def forward(self, x):

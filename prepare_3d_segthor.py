@@ -5,10 +5,11 @@ import warnings
 from pathlib import Path
 from functools import partial
 from multiprocessing import Pool
-from typing import Callable
+from typing import Callable, Literal
 
 import numpy as np
 import nibabel as nib
+from scipy.ndimage import zoom
 
 from utils import map_, tqdm_
 
@@ -35,7 +36,44 @@ def sanity_gt(gt, ct) -> bool:
     assert set(np.unique(gt)) == set(range(5))
     return True
 
-def process_patient(id_: str, dest_path: Path, source_path: Path, test_mode: bool = False) -> tuple[float, float, float]:
+def apply_interpolation(img: np.ndarray, gt: np.ndarray, target_shape=(128, 128, 64)) -> tuple[np.ndarray, np.ndarray]:
+    """Apply spline interpolation to resize the volume."""
+    zoom_factors = [t/s for t, s in zip(target_shape, img.shape)]
+    
+    # Apply interpolation
+    img_resized = zoom(img, zoom_factors, order=3, mode='nearest')  # cubic spline for image
+    gt_resized = zoom(gt, zoom_factors, order=0, mode='nearest')    # nearest neighbor for labels
+    
+    return img_resized, gt_resized
+
+def apply_sliding_window(img: np.ndarray, gt: np.ndarray, target_shape=(128, 128, 64)) -> tuple[np.ndarray, np.ndarray]:
+    """Extract a central patch of the target size."""
+    D, H, W = img.shape
+    tD, tH, tW = target_shape
+    
+    # Calculate start indices for central crop
+    start_d = max(0, (D - tD) // 2)
+    start_h = max(0, (H - tH) // 2)
+    start_w = max(0, (W - tW) // 2)
+    
+    # Extract patches
+    img_patch = img[start_d:start_d+tD, start_h:start_h+tH, start_w:start_w+tW].copy()
+    gt_patch = gt[start_d:start_d+tD, start_h:start_h+tH, start_w:start_w+tW].copy()
+    
+    # Pad if necessary
+    if img_patch.shape != target_shape:
+        pad_d = max(0, tD - img_patch.shape[0])
+        pad_h = max(0, tH - img_patch.shape[1])
+        pad_w = max(0, tW - img_patch.shape[2])
+        
+        img_patch = np.pad(img_patch, ((0, pad_d), (0, pad_h), (0, pad_w)), mode='constant')
+        gt_patch = np.pad(gt_patch, ((0, pad_d), (0, pad_h), (0, pad_w)), mode='constant')
+    
+    return img_patch, gt_patch
+
+def process_patient(id_: str, dest_path: Path, source_path: Path, 
+                   preprocessing: Literal["interpolation", "window"],
+                   test_mode: bool = False) -> tuple[float, float, float]:
     id_path: Path = source_path / ("train" if not test_mode else "test") / id_
 
     ct_path: Path = (id_path / f"{id_}.nii.gz") if not test_mode else (source_path / "test" / f"{id_}.nii.gz")
@@ -55,6 +93,12 @@ def process_patient(id_: str, dest_path: Path, source_path: Path, test_mode: boo
 
     norm_ct: np.ndarray = norm_arr(ct)
 
+    # Apply preprocessing
+    if preprocessing == "interpolation":
+        norm_ct, gt = apply_interpolation(norm_ct, gt)
+    else:  # window
+        norm_ct, gt = apply_sliding_window(norm_ct, gt)
+
     img_path: Path = dest_path / "img"
     gt_path: Path = dest_path / "gt"
     img_path.mkdir(parents=True, exist_ok=True)
@@ -65,66 +109,54 @@ def process_patient(id_: str, dest_path: Path, source_path: Path, test_mode: boo
 
     return dx, dy, dz
 
-def get_splits(src_path: Path, retains: int, fold: int) -> tuple[list[str], list[str], list[str]]:
-    ids: list[str] = sorted(map_(lambda p: p.name, (src_path / 'train').glob('*')))
-    print(f"Founds {len(ids)} in the id list")
-    print(ids[:10])
-    assert len(ids) > retains
-
-    random.shuffle(ids)  # Shuffle before to avoid any problem if the patients are sorted in any way
-    validation_slice = slice(fold * retains, (fold + 1) * retains)
-    validation_ids: list[str] = ids[validation_slice]
-    assert len(validation_ids) == retains
-
-    training_ids: list[str] = [e for e in ids if e not in validation_ids]
-    assert (len(training_ids) + len(validation_ids)) == len(ids)
-
-    test_ids: list[str] = sorted(map_(lambda p: Path(p.stem).stem, (src_path / 'test').glob('*')))
-    print(f"Founds {len(test_ids)} test ids")
-    print(test_ids[:10])
-
-    return training_ids, validation_ids, test_ids
-
 def main(args: argparse.Namespace):
     src_path: Path = Path(args.source_dir)
-    dest_path: Path = Path(args.dest_dir)
+    base_dest_path: Path = Path(args.dest_dir)
 
-    # Assume the clean up is done before calling the script
     assert src_path.exists()
-    assert not dest_path.exists()
+    
+    # Create both dataset versions
+    for preprocessing in ["interpolation", "window"]:
+        dest_path = base_dest_path / f"SEGTHOR_3D_{'128' if preprocessing == 'interpolation' else 'Window'}"
+        if dest_path.exists():
+            print(f"Destination {dest_path} already exists, skipping...")
+            continue
+            
+        print(f"\nProcessing dataset with {preprocessing} method to {dest_path}")
+        
+        training_ids: list[str]
+        validation_ids: list[str]
+        test_ids: list[str]
+        training_ids, validation_ids, test_ids = get_splits(src_path, args.retains, args.fold)
 
-    training_ids: list[str]
-    validation_ids: list[str]
-    test_ids: list[str]
-    training_ids, validation_ids, test_ids = get_splits(src_path, args.retains, args.fold)
+        resolution_dict: dict[str, tuple[float, float, float]] = {}
 
-    resolution_dict: dict[str, tuple[float, float, float]] = {}
+        split_ids: list[str]
+        for mode, split_ids in zip(["train", "val", "test"], [training_ids, validation_ids, test_ids]):
+            dest_mode: Path = dest_path / mode
+            print(f"Processing {len(split_ids)} pairs to {dest_mode}")
 
-    split_ids: list[str]
-    for mode, split_ids in zip(["train", "val", "test"], [training_ids, validation_ids, test_ids]):
-        dest_mode: Path = dest_path / mode
-        print(f"Processing {len(split_ids)} pairs to {dest_mode}")
+            pfun: Callable = partial(process_patient,
+                                   dest_path=dest_mode,
+                                   source_path=src_path,
+                                   preprocessing=preprocessing,
+                                   test_mode=mode == 'test')
+            resolutions: list[tuple[float, float, float]]
+            iterator = tqdm_(split_ids)
+            match args.process:
+                case 1:
+                    resolutions = list(map(pfun, iterator))
+                case -1:
+                    resolutions = Pool().map(pfun, iterator)
+                case _ as p:
+                    resolutions = Pool(p).map(pfun, iterator)
 
-        pfun: Callable = partial(process_patient,
-                                 dest_path=dest_mode,
-                                 source_path=src_path,
-                                 test_mode=mode == 'test')
-        resolutions: list[tuple[float, float, float]]
-        iterator = tqdm_(split_ids)
-        match args.process:
-            case 1:
-                resolutions = list(map(pfun, iterator))
-            case -1:
-                resolutions = Pool().map(pfun, iterator)
-            case _ as p:
-                resolutions = Pool(p).map(pfun, iterator)
+            for key, val in zip(split_ids, resolutions):
+                resolution_dict[key] = val
 
-        for key, val in zip(split_ids, resolutions):
-            resolution_dict[key] = val
-
-    with open(dest_path / "spacing.pkl", 'wb') as f:
-        pickle.dump(resolution_dict, f, pickle.HIGHEST_PROTOCOL)
-        print(f"Saved spacing dictionary to {f}")
+        with open(dest_path / "spacing.pkl", 'wb') as f:
+            pickle.dump(resolution_dict, f, pickle.HIGHEST_PROTOCOL)
+            print(f"Saved spacing dictionary to {f}")
 
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='3D data preparation parameters')

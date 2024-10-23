@@ -23,13 +23,15 @@
 # SOFTWARE.
 
 from pathlib import Path
-from typing import Callable, Union
+from typing import Callable, Union, Tuple, List
 
+import torch
 from torch import Tensor
 from PIL import Image
 from torch.utils.data import Dataset
 import nibabel as nib
 import numpy as np
+from scipy.ndimage import zoom
 
 
 def make_dataset(root, subset) -> list[tuple[Path, Path]]:
@@ -79,22 +81,13 @@ class SliceDataset(Dataset):
                 "stems": img_path.stem}
 
 
-def make_volume_dataset(root, subset) -> list[tuple[Path, Path]]:
-    assert subset in ['train', 'val', 'test']
-    root = Path(root)
-    img_path = root / subset / 'img'
-    full_path = root / subset / 'gt'
-    images = sorted(img_path.glob("*.nii.gz"))
-    full_labels = sorted(full_path.glob("*.nii.gz"))
-    return list(zip(images, full_labels))
-
 class VolumeDataset(Dataset):
-    def __init__(self, subset, root_dir, img_transform=None,
-                 gt_transform=None, debug=False):
+    def __init__(self, subset, root_dir, img_transform=None, gt_transform=None, debug=False):
         self.root_dir: str = root_dir
         self.img_transform: Callable = img_transform
         self.gt_transform: Callable = gt_transform
         self.files = make_volume_dataset(root_dir, subset)
+        
         if debug:
             self.files = self.files[:10]
         print(f">> Created {subset} volume dataset with {len(self)} volumes...")
@@ -102,7 +95,7 @@ class VolumeDataset(Dataset):
     def __len__(self):
         return len(self.files)
 
-    def __getitem__(self, index) -> dict[str, Union[Tensor, int, str]]:
+    def __getitem__(self, index) -> dict[str, Union[torch.Tensor, int, str]]:
         img_path, gt_path = self.files[index]
         
         # Load nifti files
@@ -110,27 +103,30 @@ class VolumeDataset(Dataset):
         gt_nifti = nib.load(str(gt_path))
         
         # Get data as numpy arrays
-        img_np = img_nifti.get_fdata()
-        gt_np = gt_nifti.get_fdata()
+        img_np = img_nifti.get_fdata().astype(np.float32)
+        gt_np = gt_nifti.get_fdata().astype(np.float32)
+        
+        # Add channel dimension if not present
+        if len(img_np.shape) == 3:
+            img_np = img_np[np.newaxis, ...]  # Add channel dimension
         
         # Apply transformations
         if self.img_transform:
             img = self.img_transform(img_np)
         else:
-            img = Tensor(img_np)
+            img = torch.from_numpy(img_np)
         
         if self.gt_transform:
             gt = self.gt_transform(gt_np)
         else:
-            gt = Tensor(gt_np)
+            gt = torch.from_numpy(gt_np.astype(np.int64))
         
         # Ensure correct dimensions
-        assert img.dim() == 4, f"Expected 4D tensor for image, got {img.dim()}D"
-        assert gt.dim() == 4, f"Expected 4D tensor for ground truth, got {gt.dim()}D"
-        C, D, H, W = img.shape
-        K, D2, H2, W2 = gt.shape
-        assert img.shape[1:] == gt.shape[1:], f"Image shape {img.shape} doesn't match GT shape {gt.shape}"
+        assert img.dim() == 4, f"Expected 4D tensor for image, got shape {img.shape}"
+        assert gt.dim() == 4, f"Expected 4D tensor for ground truth, got shape {gt.shape}"
         
-        return {"images": img,
-                "gts": gt,
-                "stems": img_path.stem}
+        return {
+            "images": img,
+            "gts": gt,
+            "stems": img_path.stem
+        }
