@@ -14,39 +14,42 @@ test_root = Path("test_pp")
 def create_processed_volumes():
     test_root.mkdir(parents=True, exist_ok=True)
     r = Results(Path("results") / "segthor_unet" / "ce")
-    # gts = GT(Path("data") / "SEGTHOR" / "val" / "gt")
+
     for pred, patid in r.best_epoch_val_3d():
         patient_str = "Patient_{:02}".format(patid)
-        # save_as_nii(pred, test_root / f"{patient_str}_pred")
-        # for i in range(10):
-        #     save_as_nii(closing(pred, i), test_root / f"{patient_str}_closing_{i}")
+
+        save_as_nii(pred, test_root / f"{patient_str}_pred")
+
+        for i in range(10):
+            save_as_nii(closing(pred, i), test_root / f"{patient_str}_closing_{i}")
+        
         for i in range(5, 7):
             save_as_nii(opening(pred, i), test_root / f"{patient_str}_opening_{i}")
-        # save_as_nii(closing(pred, 0), test_root / f"{patient_str}_closing_0")
-        # save_as_nii(closing_opening(pred, 4, 2), test_root / f"{patient_str}_c_4_o_2")
-        # save_as_nii(closing_opening(pred, 6, 4), test_root / f"{patient_str}_c_6_o_4")
-        # save_as_nii(closing_opening(pred, 8, 6), test_root / f"{patient_str}_c_8_o_6")
-        # gt = gts.patient_volume(patid)
-        # print(dice_batch(pred, gt))
 
 
 def compare_dice():
     gts = GT(Path("data") / "SEGTHOR" / "val" / "gt")
     json_path = test_root / "scores.json"
+
     if json_path.exists():
         with open(json_path, "r") as file:
             scores = json.load(file)
     else:
         scores = {}
+    
     for patid in [1,2,13,16,21,22,28,30,35,39]:
         patient_str = "Patient_{:02}".format(patid)
         print(patient_str)
+
         gt = gts.patient_volume(patid)
+
         for path in sorted(glob.glob((test_root / f"{patient_str}_*.nii*").as_posix())):
             name = Path(path).stem.replace(patient_str + "_", "")
             pred = to_onehot_tensor(np.asarray(nib.load(str(path)).dataobj))
+
             dice = dice_batch(pred, gt)
             print(dice)
+
             scores.setdefault(name, []).append(dice.tolist())
             with open(test_root / "scores.json", "w") as file:
                 json.dump(scores, file, indent=2)
@@ -84,6 +87,6 @@ def plot_dice():
 
 
 if __name__ == "__main__":
-    # create_processed_volumes()
-    # compare_dice()
+    create_processed_volumes()
+    compare_dice()
     plot_dice()
