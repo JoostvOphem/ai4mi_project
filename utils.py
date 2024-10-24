@@ -224,26 +224,56 @@ jaccard_batch = partial(meta_jaccard, "bk...->k")  # used for 3d jaccard (IoU)
 
 
 def metric_coef(pred_seg, gt, metric):
-	if metric == 'dice':
-		return dice_coef(pred_seg, gt)
-	
-	elif metric == 'jaccard':
-		return jaccard_coef(pred_seg, gt)
-		
-	elif metric == 'precision':
-		return precision_coef(pred_seg, gt)
-	
-	elif metric == 'recall':
-		return recall_coef(pred_seg, gt)
-	
-	elif metric == 'nsd':
-		return nsd(pred_seg, gt, threshold=1.0)
-		
-	elif metric == 'masd':
-		return masd(pred_seg, gt)
-		
-	else:
-		raise ValueError(f"Unsupported metric: {metric}")
+    if isinstance(pred_seg, torch.Tensor):
+        # Check dimensions of pred_seg without converting to numpy
+        if pred_seg.ndim == 2:
+            is_2d = True
+        elif pred_seg.ndim == 3:
+            is_2d = False
+        else:
+            raise ValueError(f"Unsupported number of dimensions: {pred_seg.ndim}")
+
+    if metric == 'dice':
+        # 2D
+        if is_2d:
+            return dice_coef(pred_seg, gt)
+        # 3D
+        else:
+            return dice_batch(pred_seg, gt)
+
+    elif metric == 'jaccard':
+        # 2D
+        if is_2d:
+            return jaccard_coef(pred_seg, gt)
+        # 3D
+        else:
+            return jaccard_batch(pred_seg, gt)
+    
+    elif metric == 'precision':
+        # 2D
+        if is_2d:
+            return precision_coef(pred_seg, gt)
+        # 3D
+        else:
+            return precision_batch(pred_seg, gt)
+    
+    elif metric == 'recall':
+        # 2D
+        if is_2d:
+            return recall_coef(pred_seg, gt)
+        # 3D
+        else:
+            return recall_batch(pred_seg, gt)  # Assuming there's a batch version
+    
+    elif metric == 'nsd':
+        return nsd(pred_seg, gt, threshold=1.0)
+        
+    elif metric == 'masd':
+        return masd(pred_seg, gt)
+        
+    else:
+        raise ValueError(f"Unsupported metric: {metric}")
+
 
 def intersection(a: Tensor, b: Tensor) -> Tensor:
     assert a.shape == b.shape
