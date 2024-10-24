@@ -26,7 +26,14 @@ $ python prepare_3d_segthor.py --source_dir data/segthor_train --dest_dir data/S
 The synthetic dataset is generated randomly, whereas for Segthor it is required to put the file [`segthor_train.zip`](https://amsuni-my.sharepoint.com/:u:/g/personal/h_t_g_kervadec_uva_nl/EfMdFte7pExAnPwt4tYUcxcBbJJO8dqxJP9r-5pm9M_ARw?e=ZNdjee) (required a UvA account) in the `data/` folder. If the computer running it is powerful enough, the recipe for `data/SEGTHOR` can be modified in the [Makefile](Makefile) to enable multi-processing (`-p -1` option, see `python slice_segthor.py --help` or its code directly).
 
 ### Preprocessing
-Run the following commands to make our preprocessed data folders: SEGTHOR_3D_MED, SEGTHOR_3D_AI, SEGTHOR_3D_ALL, SEGTHOR_MED, SEGTHOR_AI, SEGTHOR_ALL
+First fix the heart placements running
+$ python notebooks/python_files_of_notebooks/official_transform_data.py
+
+This makes use of the rotation and translation matrices given for the use of this course. 
+An alternate approach which looks similarly good for the patients but works differently can be found in notebooks/python_files_of_notebooks/Transform_data.py. We decided againt using this transformation because we deemed it less likely that there were mistakes with the official solution.
+Finally, an approach that also explicitly finds the rotation and translation matrices can be found on notebooks/Transform_data_solution_on_all.ipynb
+
+After this run the following commands to make our preprocessed data folders: SEGTHOR_3D_MED, SEGTHOR_3D_AI, SEGTHOR_3D_ALL, SEGTHOR_MED, SEGTHOR_AI, SEGTHOR_ALL
 ```
 $ python apply_augmentations.py --mode MED
 $ python apply_augmentations.py --mode AI
