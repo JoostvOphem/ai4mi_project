@@ -27,7 +27,9 @@ The synthetic dataset is generated randomly, whereas for Segthor it is required 
 
 ### Preprocessing
 First fix the heart placements running
+```
 $ python notebooks/python_files_of_notebooks/official_transform_data.py
+```
 
 This makes use of the rotation and translation matrices given for the use of this course. 
 An alternate approach which looks similarly good for the patients but works differently can be found in notebooks/python_files_of_notebooks/Transform_data.py. We decided againt using this transformation because we deemed it less likely that there were mistakes with the official solution.
